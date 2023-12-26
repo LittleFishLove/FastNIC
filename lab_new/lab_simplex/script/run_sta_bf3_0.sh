@@ -16,6 +16,7 @@ recv_host="node1"
 if [[ ${send_host} == "node2" ]]
 then
     send_ip="10.15.198.161"
+    recv_ip="10.15.198.160"
 fi
 
 
@@ -24,11 +25,6 @@ if [[ ${user} == "qyn" ]]
 then
     run_path="/home/qyn/software/FastNIC/lab_new/${lab}"
     password="nesc77qq"
-fi
-
-if [[ ! -d "${run_path}/lab_results/ovslog" ]]
-then
-    mkdir -p ${run_path}/lab_results/ovslog
 fi
 
 if [[ ! -d "${run_path}/lab_results/log" ]]
@@ -49,7 +45,7 @@ test_time_rcv=30
 test_time_send=10
 
 # flow_num_list=(100000 10000 100)
-flow_num_list=(100 100000)
+flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -71,15 +67,16 @@ do
     ./start_sta.sh $file $line $send_host $core_id $run_path "$send_run_para"
     sleep 30s
 
-    mkdir ${run_path}/lab_results/${file}/send_$times
+    mkdir -p ${run_path}/lab_results/${file}/send_$times
     mv ${run_path}/lab_results/${file}/*.csv ../lab_results/${file}/send_$times/
     echo -e "off_thre,zipf_para\r\n${off_thre},${zipf_para}" > ${run_path}/lab_results/${file}/send_$times/para.csv
 
-    ssh $user@$send_ip "cd $run_path && mkdir -p ./lab_results/${remotefile}/rcv_$times"
-    ssh $user@$send_ip "cd $run_path/lab_results/${remotefile}/ && mv *csv rcv_$times/"
-    
+    mkdir -p ${run_path}/lab_results/${remotefile}/rcv_$times
+    scp $user@$recv_ip:$run_path/lab_results/${remotefile}/*.csv $run_path/lab_results/${remotefile}/rcv_$times
+    ssh $user@$recv_ip "cd $run_path/lab_results/$remotefile && rm -f ./*.csv"
+
     ovsfile_path="/home/ubuntu/software/FastNIC/lab_results/ovs_log"
-    mkdir ${run_path}/lab_results/ovslog/log_$times
+    mkdir -p ${run_path}/lab_results/ovslog/log_$times
     scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ((times++))
