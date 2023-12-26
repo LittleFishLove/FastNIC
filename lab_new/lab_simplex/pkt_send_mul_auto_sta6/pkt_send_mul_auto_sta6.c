@@ -37,11 +37,12 @@
 #define MBUF_SIZE  (1518+sizeof(struct rte_mbuf)+RTE_PKTMBUF_HEADROOM)
 #define MBUF_CACHE_SIZE 32
 
-#define IPV4_LEN 10
-#define UDP_LEN 8
-#define TCP_LEN 20
-#define UDP_PAY_LOAD_LEN (PKT_LEN-IPV4_LEN-UDP_LEN) //udp 
-#define TCP_PAY_LOAD_LEN (PKT_LEN-IPV4_LEN-TCP_LEN) //tcp
+#define ETH_HDR_LEN 14
+#define IPV4_HDR_LEN 10
+#define UDP_HDR_LEN 8
+#define TCP_HDR_LEN 20
+#define UDP_PAY_LOAD_LEN (PKT_LEN-IPV4_HDR_LEN-UDP_HDR_LEN) //udp 
+#define TCP_PAY_LOAD_LEN (PKT_LEN-IPV4_HDR_LEN-TCP_HDR_LEN) //tcp
 
 #define IP_PROTO_UDP 17
 #define IP_PROTO_TCP 6
@@ -351,7 +352,17 @@ static void lcore_main(uint32_t lcore_id)
                 //     pkt_count = 0;
                 // }
             }
-
+            int a;
+            printf("packet:\n");
+            // uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(buffer->mbufs[buffer->count], void *);
+            for(a = 0; a < ETH_HDR_LEN + IPV4_HDR_LEN + TCP_HDR_LEN + 10; a++){
+                printf("%02x ", packet[a]);
+                if(a % 16 == 15){
+                    printf("%d-%d", a-15, a);
+                    printf("\n");
+                }
+            }
+            printf("\n");
             // Send the packet batch
             uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
             total_tx += nb_tx;

@@ -55,7 +55,16 @@ then
     src_nic_name="ens22np0"
     dst_ip="192.168.200.1"
     dst_mac="a0:88:c2:31:fb:6e"
-
+elif [[ $line == "186-171" && $host_name == "186_ali" ]] 
+then
+    src_nic_name="ens5f0"
+    dst_ip=""
+    dst_mac="00:11:00:00:03:14"
+elif [[ $line == "bf3" && $host_name == "node2" ]] 
+then
+    src_nic_name="ens29f0v1"
+    dst_ip=""
+    dst_mac="b8:59:9f:f0:80:a4"
 fi
 
 
@@ -74,6 +83,11 @@ then
 elif [[ ${host_name} == "150" || ${host_name} == "node11" || ${host_name} == "node12" ]]
 then
     export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig/
+fi
+
+if [[ ${host_name} == "186_ali" ]]
+then
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
 fi
 
 cd $run_path/$file_name/
@@ -145,6 +159,11 @@ then
     sed -i "s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/" para.h
     sed -i "s/#define MAX_RECORD_COUNT.*$/#define MAX_RECORD_COUNT ${test_time}/" para.h
     sed -i "s/#define ZIPF_PARA.*$/#define ZIPF_PARA ${zipf_para}/" para.h
+    make clean
+    make
+    sudo ./build/$file_name -l ${core_id} -a ${src_pci} -- --srcmac ${src_mac} --dstmac ${dst_mac} 
+elif [[ ${file_name} == "pkt_send_mul_auto_sta6" ]]
+then
     make clean
     make
     sudo ./build/$file_name -l ${core_id} -a ${src_pci} -- --srcmac ${src_mac} --dstmac ${dst_mac} 
