@@ -22,7 +22,7 @@ else ifeq ($(shell hostname), nsl-node12)
 # D_IS_NSL := -DTPUT_PFX=\"/local/qyn\"
 D_IS_NSL := -DTPUT_PFX=\"..\"
 else ifeq ($(shell hostname), rdma2-server)
-D_IS_NSL := -DTPUT_PFX=\"/root\"
+D_IS_NSL := -DTPUT_PFX=\"/root/qyn/FastNIC/lab_new/lab_simple\"
 
 else
 D_IS_NSL := -DTPUT_PFX=\"..\"
