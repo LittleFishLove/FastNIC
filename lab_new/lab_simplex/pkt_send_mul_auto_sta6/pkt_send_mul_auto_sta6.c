@@ -127,8 +127,8 @@ struct flow_log *flowlog_timeline[MAX_LCORES];
 
 static inline void
 fill_ethernet_header(struct rte_ether_hdr *eth_hdr, struct header_info *hdr) {
-	struct rte_ether_addr s_addr = hdr->eth_dst; 
-	struct rte_ether_addr d_addr = hdr->eth_src;
+	struct rte_ether_addr s_addr = hdr->eth_src; 
+	struct rte_ether_addr d_addr = hdr->eth_dst;
 	eth_hdr->src_addr =s_addr;
 	eth_hdr->dst_addr =d_addr;
 	eth_hdr->ether_type = rte_cpu_to_be_16(0x0800);
