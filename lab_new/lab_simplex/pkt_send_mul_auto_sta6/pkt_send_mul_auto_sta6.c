@@ -54,8 +54,7 @@
 #define TO_STRING(a) #a
 #define STRING_THRANFER(a) TO_STRING(a)
 
-#define SRC_IP_PREFIX ((192<<24)) /* dest ip prefix = 192.0.0.0.0 */
-#define DEST_IP_PREFIX ((193<<24)) /* dest ip prefix = 192.0.0.0.0 */
+#define SRC_IP_PREFIX ((10<<24)) /* dest ip prefix = 192.0.0.0.0 */
 
 #define HOST_TO_NETWORK_16(value) ((uint16_t)(((value) >> 8) | ((value) << 8)))
 
@@ -322,40 +321,36 @@ static void lcore_main(uint32_t lcore_id)
                                    bufs_tx, 
                                    BURST_SIZE);
             #endif
-            for (j = 0; j < BURST_SIZE; j++){
-                struct header_info hdr_info;
-                uint32_t ip_dst, ip_src;
-                static const struct rte_ether_addr eth_dst = {{ 0x00, 0x08, 0x00, 0x00, 0x03, 0x14 }};
-                static const struct rte_ether_addr eth_src = {{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 }};
-                inet_pton(AF_INET, "192.168.0.1", &ip_dst);
-                ip_dst = ntohl(ip_dst);
-                inet_pton(AF_INET, "10.0.0.0", &ip_src);
-                ip_src = ntohl(ip_src);
 
-                hdr_info.eth_dst = eth_dst;
-                hdr_info.eth_src = eth_src;
-                hdr_info.ipv4_dst = ip_dst;
-                hdr_info.ipv4_src = ip_src;
-                hdr_info.tcp_port_dst = 1;
-                hdr_info.tcp_port_src = 2;
-                
+            struct header_info hdr_info;
+            uint32_t ip_dst, ip_src;
+            static const struct rte_ether_addr eth_dst = {{ 0x00, 0x08, 0x00, 0x00, 0x03, 0x14 }};
+            static const struct rte_ether_addr eth_src = {{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 }};
+            inet_pton(AF_INET, "192.168.0.1", &ip_dst);
+            ip_dst = ntohl(ip_dst);
+            inet_pton(AF_INET, "10.0.0.0", &ip_src);
+            ip_src = ntohl(ip_src);
+
+            hdr_info.eth_dst = eth_dst;
+            hdr_info.eth_src = eth_src;
+            hdr_info.ipv4_dst = ip_dst;
+            hdr_info.ipv4_src = ip_src;
+            hdr_info.tcp_port_dst = 1;
+            hdr_info.tcp_port_src = 2;
+
+            for (j = 0; j < BURST_SIZE; j++){
                 #ifndef PCAP_ENABLE
+                ip_src = SRC_IP_PREFIX + (pkt_count % FLOW_NUM);
                 bufs_tx[j] = make_testpkt(lconf->rx_queue_list[i], &hdr_info);
                 #endif
-
                 /* packet copy from buffer to send*/
                 // rte_memcpy(rte_pktmbuf_mtod(bufs_tx[j], void *), 
                 //            rte_pktmbuf_mtod(pkt_buffer[queue_id].mbufs[pkt_count], void*), 
                 //            pkt_buffer[queue_id].mbufs[pkt_count]->data_len); 
                 // bufs_tx[j]->pkt_len = pkt_buffer[queue_id].mbufs[pkt_count]->pkt_len;
                 // bufs_tx[j]->data_len = pkt_buffer[queue_id].mbufs[pkt_count]->data_len;
-                
                 txB[j] = bufs_tx[j]->data_len;
-
                 pkt_count++;
-                // if(unlikely(pkt_count == FLOW_NUM)){
-                //     pkt_count = 0;
-                // }
             }
             int a;
             printf("packet:\n");
@@ -369,9 +364,7 @@ static void lcore_main(uint32_t lcore_id)
             }
             printf("\n");
             // Send the packet batch
-            // uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
-            uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, 1);
-            sleep(3);
+            uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
             total_tx += nb_tx;
             for (j = 0; j < nb_tx; j++){
                 total_txB += txB[j];
