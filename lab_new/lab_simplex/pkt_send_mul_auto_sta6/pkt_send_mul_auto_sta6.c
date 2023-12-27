@@ -341,6 +341,9 @@ static void lcore_main(uint32_t lcore_id)
             for (j = 0; j < BURST_SIZE; j++){
                 #ifndef PCAP_ENABLE
                 ip_src = SRC_IP_PREFIX + (pkt_count % FLOW_NUM);
+                ip_src = ntohl(ip_src);
+                hdr_info.ipv4_src = ip_src;
+
                 bufs_tx[j] = make_testpkt(lconf->rx_queue_list[i], &hdr_info);
                 #endif
                 /* packet copy from buffer to send*/
@@ -352,6 +355,7 @@ static void lcore_main(uint32_t lcore_id)
                 txB[j] = bufs_tx[j]->data_len;
                 pkt_count++;
             }
+            // packet hexadecimal print
             int a;
             printf("packet:\n");
             uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(bufs_tx[0], void *);
@@ -365,6 +369,9 @@ static void lcore_main(uint32_t lcore_id)
             printf("\n");
             // Send the packet batch
             uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
+            // uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, 1);
+            // sleep(3);
+
             total_tx += nb_tx;
             for (j = 0; j < nb_tx; j++){
                 total_txB += txB[j];
