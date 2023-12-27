@@ -21,6 +21,9 @@ D_IS_NSL := -DTPUT_PFX=\"..\"
 else ifeq ($(shell hostname), nsl-node12)
 # D_IS_NSL := -DTPUT_PFX=\"/local/qyn\"
 D_IS_NSL := -DTPUT_PFX=\"..\"
+else ifeq ($(shell hostname), rdma2-server)
+D_IS_NSL := -DTPUT_PFX=\"/root\"
+
 else
 D_IS_NSL := -DTPUT_PFX=\"..\"
 endif

@@ -9,3 +9,6 @@
 #define PKT_LEN 64
 #define MAX_RECORD_COUNT 60
 #define PROGRAM "pkt_send_mul_auto_sta5_2"
+
+#define THROUGHPUT_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput.csv"
+#define THROUGHPUT_TIME_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput_time.csv"

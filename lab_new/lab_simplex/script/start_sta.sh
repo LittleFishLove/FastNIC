@@ -88,6 +88,7 @@ fi
 if [[ ${host_name} == "186_ali" ]]
 then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
+    source /opt/rh/devtoolset-11/enable
 fi
 
 cd $run_path/$file_name/

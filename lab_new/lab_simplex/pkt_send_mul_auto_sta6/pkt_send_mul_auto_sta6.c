@@ -58,9 +58,6 @@
 
 #define HOST_TO_NETWORK_16(value) ((uint16_t)(((value) >> 8) | ((value) << 8)))
 
-#define THROUGHPUT_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput.csv"
-#define THROUGHPUT_TIME_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput_time.csv"
-
 #ifdef PCAP_ENABLE
 #define PCAP_FILE(a) ("../../dataset/synthetic/flow_" STRING_THRANFER(a) ".pcap")
 #endif
@@ -341,7 +338,6 @@ static void lcore_main(uint32_t lcore_id)
             for (j = 0; j < BURST_SIZE; j++){
                 #ifndef PCAP_ENABLE
                 ip_src = SRC_IP_PREFIX + (pkt_count % FLOW_NUM);
-                ip_src = ntohl(ip_src);
                 hdr_info.ipv4_src = ip_src;
 
                 bufs_tx[j] = make_testpkt(lconf->rx_queue_list[i], &hdr_info);
@@ -355,17 +351,17 @@ static void lcore_main(uint32_t lcore_id)
                 txB[j] = bufs_tx[j]->data_len;
                 pkt_count++;
             }
-            // packet hexadecimal print
-            int a;
-            printf("packet:\n");
-            uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(bufs_tx[0], void *);
-            for(a = 0; a < ETH_HDR_LEN + IPV4_HDR_LEN + TCP_HDR_LEN + 10; a++){
-                printf("%02x ", pkt_p[a]);
-                if(a % 16 == 15){
-                    printf("%d-%d", a-15, a);
-                    printf("\n");
-                }
-            }
+            // // packet hexadecimal print
+            // int a;
+            // printf("packet:\n");
+            // uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(bufs_tx[0], void *);
+            // for(a = 0; a < ETH_HDR_LEN + IPV4_HDR_LEN + TCP_HDR_LEN + 10; a++){
+            //     printf("%02x ", pkt_p[a]);
+            //     if(a % 16 == 15){
+            //         printf("%d-%d", a-15, a);
+            //         printf("\n");
+            //     }
+            // }
             printf("\n");
             // Send the packet batch
             uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
