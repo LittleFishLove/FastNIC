@@ -57,6 +57,8 @@
 #define SRC_IP_PREFIX ((192<<24)) /* dest ip prefix = 192.0.0.0.0 */
 #define DEST_IP_PREFIX ((193<<24)) /* dest ip prefix = 192.0.0.0.0 */
 
+#define HOST_TO_NETWORK_16(value) ((uint16_t)(((value) >> 8) | ((value) << 8)))
+
 #define THROUGHPUT_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput.csv"
 #define THROUGHPUT_TIME_FILE TPUT_PFX "/lab_results/" PROGRAM "/throughput_time.csv"
 
@@ -146,7 +148,7 @@ fill_ipv4_header(struct rte_ipv4_hdr *ipv4_hdr, struct header_info *hdr) {
     ipv4_hdr->src_addr = rte_cpu_to_be_32(hdr->ipv4_src); 
 	ipv4_hdr->dst_addr = rte_cpu_to_be_32(hdr->ipv4_dst);
 
-	ipv4_hdr->hdr_checksum = rte_cpu_to_be_16(rte_ipv4_cksum(ipv4_hdr));
+	ipv4_hdr->hdr_checksum = rte_cpu_to_be_16(HOST_TO_NETWORK_16(rte_ipv4_cksum(ipv4_hdr)));
 }
 
 // static inline void
@@ -165,9 +167,9 @@ fill_tcp_header(struct rte_tcp_hdr *tcp_hdr, struct rte_ipv4_hdr *ipv4_hdr, stru
 	tcp_hdr->dst_port = rte_cpu_to_be_16(hdr->tcp_port_dst);
 	tcp_hdr->sent_seq = rte_cpu_to_be_32(0);
 	tcp_hdr->recv_ack = rte_cpu_to_be_32(0);
-	tcp_hdr->data_off = 0;
-	tcp_hdr->tcp_flags = 0;
-	tcp_hdr->rx_win = rte_cpu_to_be_16(16);
+	tcp_hdr->data_off = 0x50;
+	tcp_hdr->tcp_flags = 2;
+	tcp_hdr->rx_win = HOST_TO_NETWORK_16(rte_cpu_to_be_16(32));
 	tcp_hdr->cksum = rte_cpu_to_be_16(0x0);
 	tcp_hdr->tcp_urp = rte_cpu_to_be_16(0);
 
