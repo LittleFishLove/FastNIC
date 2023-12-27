@@ -326,7 +326,10 @@ static void lcore_main(uint32_t lcore_id)
                 static const struct rte_ether_addr eth_dst = {{ 0x00, 0x08, 0x00, 0x00, 0x03, 0x14 }};
                 static const struct rte_ether_addr eth_src = {{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 }};
                 inet_pton(AF_INET, "192.168.0.1", &ip_dst);
+                ip_dst = ntohl(ip_dst);
                 inet_pton(AF_INET, "10.0.0.0", &ip_src);
+                ip_src = ntohl(ip_src);
+
                 hdr_info.eth_dst = eth_dst;
                 hdr_info.eth_src = eth_src;
                 hdr_info.ipv4_dst = ip_dst;
@@ -354,9 +357,9 @@ static void lcore_main(uint32_t lcore_id)
             }
             int a;
             printf("packet:\n");
-            // uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(buffer->mbufs[buffer->count], void *);
+            uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(bufs_tx[0], void *);
             for(a = 0; a < ETH_HDR_LEN + IPV4_HDR_LEN + TCP_HDR_LEN + 10; a++){
-                printf("%02x ", packet[a]);
+                printf("%02x ", pkt_p[a]);
                 if(a % 16 == 15){
                     printf("%d-%d", a-15, a);
                     printf("\n");
@@ -364,7 +367,9 @@ static void lcore_main(uint32_t lcore_id)
             }
             printf("\n");
             // Send the packet batch
-            uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
+            // uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
+            uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, 1);
+            sleep(3);
             total_tx += nb_tx;
             for (j = 0; j < nb_tx; j++){
                 total_txB += txB[j];
