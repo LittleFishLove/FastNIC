@@ -80,12 +80,20 @@ echo -e '\n'
 if [[ ${host_name} == "149" ]]
 then
     export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/
+elif [[ ${host_name} == "186_ali" ]]
+then
+    export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/
+    source /opt/rh/devtoolset-11/enable
+elif [[ ${host_name} == "171_ali" ]]
+then
+    export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
 elif [[ ${host_name} == "150" || ${host_name} == "node11" || ${host_name} == "node12" ]]
 then
     export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig/
 fi
 
-if [[ ${host_name} == "186_ali" ]]
+if [[ ${host_name} == "186_ali" || ${host_name} == "171_ali" ]]
 then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
     source /opt/rh/devtoolset-11/enable
