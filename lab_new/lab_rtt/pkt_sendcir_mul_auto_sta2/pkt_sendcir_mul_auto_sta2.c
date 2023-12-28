@@ -36,7 +36,16 @@
 #define NUM_MBUFS 4095//(PKTS_NUM+BURST_SIZE)
 #define MBUF_SIZE  (1518+sizeof(struct rte_mbuf)+RTE_PKTMBUF_HEADROOM)
 #define MBUF_CACHE_SIZE 32
-#define PAY_LOAD_LEN (PKT_LEN-28) //udp 
+
+#define ETH_HDR_LEN 14
+#define IPV4_HDR_LEN 10
+#define UDP_HDR_LEN 8
+#define TCP_HDR_LEN 20
+#define UDP_PAY_LOAD_LEN (PKT_LEN-IPV4_HDR_LEN-UDP_HDR_LEN) //udp 
+#define TCP_PAY_LOAD_LEN (PKT_LEN-IPV4_HDR_LEN-TCP_HDR_LEN) //tcp
+
+#define IP_PROTO_UDP 17
+#define IP_PROTO_TCP 6
 // #define PCAP_ENABLE
 
 #define APP_LOG(...) RTE_LOG(INFO, USER1, __VA_ARGS__)
@@ -45,11 +54,9 @@
 #define TO_STRING(a) #a
 #define STRING_THRANFER(a) TO_STRING(a)
 
-#define SRC_IP_PREFIX ((192<<24)) 
-#define DEST_IP_PREFIX ((193<<24)) 
+#define SRC_IP_PREFIX ((10<<24)) /* dest ip prefix = 192.0.0.0.0 */
 
-#define THROUGHPUT_FILE "../lab_results/" PROGRAM "/throughput.csv"
-#define THROUGHPUT_TIME_FILE   "../lab_results/" PROGRAM "/throughput_time.csv"
+#define HOST_TO_NETWORK_16(value) ((uint16_t)(((value) >> 8) | ((value) << 8)))
 
 #ifdef PCAP_ENABLE
 #define PCAP_FILE(a) ("../../dataset/synthetic/flow_" STRING_THRANFER(a) ".pcap")
@@ -63,13 +70,6 @@ struct lcore_configuration {
     uint32_t n_rx_queue;  // number of RX queues
     uint32_t rx_queue_list[RX_QUEUE_PER_LCORE]; // list of RX queues
 } __rte_cache_aligned;
-
-struct flow {
-    uint32_t src_ip;
-    uint32_t dst_ip;
-    uint16_t src_port;
-    uint16_t dst_port;
-};
 
 struct packet_buffer {
     struct rte_mbuf **mbufs;
@@ -91,8 +91,17 @@ struct flow_log {
     double rx_bps_t;
 };
 
-struct rte_ether_addr src_mac;
-struct rte_ether_addr dst_mac;
+struct header_info {
+    struct rte_ether_addr eth_dst;
+    struct rte_ether_addr eth_src;
+    uint32_t ipv4_dst;
+    uint32_t ipv4_src;
+    uint16_t tcp_port_dst;
+    uint16_t tcp_port_src;
+};
+
+struct rte_ether_addr src_default_mac;
+struct rte_ether_addr dst_default_mac;
 
 static unsigned enabled_port = 0;
 static uint64_t min_txintv = 15/*us*/;	// min cycles between 2 returned packets
@@ -113,55 +122,55 @@ double rx_bps[MAX_LCORES];
 struct flow_log *flowlog_timeline[MAX_LCORES];
 
 static inline void
-fill_ethernet_header(struct rte_ether_hdr *eth_hdr) {
-	struct rte_ether_addr s_addr = src_mac; 
-	struct rte_ether_addr d_addr = dst_mac;
+fill_ethernet_header(struct rte_ether_hdr *eth_hdr, struct header_info *hdr) {
+	struct rte_ether_addr s_addr = hdr->eth_src; 
+	struct rte_ether_addr d_addr = hdr->eth_dst;
 	eth_hdr->src_addr =s_addr;
 	eth_hdr->dst_addr =d_addr;
 	eth_hdr->ether_type = rte_cpu_to_be_16(0x0800);
 }
 
 static inline void
-fill_ipv4_header(struct rte_ipv4_hdr *ipv4_hdr, const struct flow *flow_id) {
-	ipv4_hdr->version_ihl = (4 << 4) + 5; // ipv4, length 5 (*4)
-	ipv4_hdr->type_of_service = 0; // No Diffserv
+fill_ipv4_header(struct rte_ipv4_hdr *ipv4_hdr, struct header_info *hdr) {
+	ipv4_hdr->version_ihl = (4 << 4) + 5; // 0x45
+	ipv4_hdr->type_of_service = 0; // 0x00
 	ipv4_hdr->total_length = rte_cpu_to_be_16(PKT_LEN); // tcp 20
-	ipv4_hdr->packet_id = rte_cpu_to_be_16(5462); // set random
+	ipv4_hdr->packet_id = rte_cpu_to_be_16(1); // set random
 	ipv4_hdr->fragment_offset = rte_cpu_to_be_16(0);
 	ipv4_hdr->time_to_live = 64;
-	ipv4_hdr->next_proto_id = 17; // udp
+	ipv4_hdr->next_proto_id = IP_PROTO_TCP; 
 	ipv4_hdr->hdr_checksum = rte_cpu_to_be_16(0x0);
 
-    ipv4_hdr->src_addr = rte_cpu_to_be_32(flow_id->src_ip); 
-	ipv4_hdr->dst_addr = rte_cpu_to_be_32(flow_id->dst_ip);
+    ipv4_hdr->src_addr = rte_cpu_to_be_32(hdr->ipv4_src); 
+	ipv4_hdr->dst_addr = rte_cpu_to_be_32(hdr->ipv4_dst);
 
-	ipv4_hdr->hdr_checksum = rte_cpu_to_be_16(rte_ipv4_cksum(ipv4_hdr));
-}
-
-static inline void
-fill_udp_header(struct rte_udp_hdr *udp_hdr, struct rte_ipv4_hdr *ipv4_hdr, const struct flow *flow_id) {
-    udp_hdr->src_port = rte_cpu_to_be_16(flow_id->src_port);
-	udp_hdr->dst_port = rte_cpu_to_be_16(flow_id->dst_port);
-	udp_hdr->dgram_len = rte_cpu_to_be_16(PKT_LEN - sizeof(struct rte_ipv4_hdr));
-    udp_hdr->dgram_cksum = rte_cpu_to_be_16(0x0);
-	
-	udp_hdr->dgram_cksum = rte_cpu_to_be_16(rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hdr));
+	ipv4_hdr->hdr_checksum = rte_cpu_to_be_16(HOST_TO_NETWORK_16(rte_ipv4_cksum(ipv4_hdr)));
 }
 
 // static inline void
-// fill_tcp_header(struct rte_tcp_hdr *tcp_hdr, struct rte_ipv4_hdr *ipv4_hdr) {
-// 	tcp_hdr->src_port = rte_cpu_to_be_16(0x162E);
-// 	tcp_hdr->dst_port = rte_cpu_to_be_16(0x04d2);
-// 	tcp_hdr->sent_seq = rte_cpu_to_be_32(0);
-// 	tcp_hdr->recv_ack = rte_cpu_to_be_32(0);
-// 	tcp_hdr->data_off = 0;
-// 	tcp_hdr->tcp_flags = 0;
-// 	tcp_hdr->rx_win = rte_cpu_to_be_16(16);
-// 	tcp_hdr->cksum = rte_cpu_to_be_16(0x0);
-// 	tcp_hdr->tcp_urp = rte_cpu_to_be_16(0);
-
-// 	tcp_hdr->cksum = rte_cpu_to_be_16(rte_ipv4_udptcp_cksum(ipv4_hdr, tcp_hdr));
+// fill_udp_header(struct rte_udp_hdr *udp_hdr, struct rte_ipv4_hdr *ipv4_hdr, struct header_info *hdr) {
+//     udp_hdr->src_port = rte_cpu_to_be_16(flow_id->src_port);
+// 	udp_hdr->dst_port = rte_cpu_to_be_16(flow_id->dst_port);
+// 	udp_hdr->dgram_len = rte_cpu_to_be_16(PKT_LEN - sizeof(struct rte_ipv4_hdr));
+//     udp_hdr->dgram_cksum = rte_cpu_to_be_16(0x0);
+	
+// 	udp_hdr->dgram_cksum = rte_cpu_to_be_16(rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hdr));
 // }
+
+static inline void
+fill_tcp_header(struct rte_tcp_hdr *tcp_hdr, struct rte_ipv4_hdr *ipv4_hdr, struct header_info *hdr) {
+	tcp_hdr->src_port = rte_cpu_to_be_16(hdr->tcp_port_src);
+	tcp_hdr->dst_port = rte_cpu_to_be_16(hdr->tcp_port_dst);
+	tcp_hdr->sent_seq = rte_cpu_to_be_32(0);
+	tcp_hdr->recv_ack = rte_cpu_to_be_32(0);
+	tcp_hdr->data_off = 0x50;
+	tcp_hdr->tcp_flags = 2;
+	tcp_hdr->rx_win = HOST_TO_NETWORK_16(rte_cpu_to_be_16(32));
+	tcp_hdr->cksum = rte_cpu_to_be_16(0x0);
+	tcp_hdr->tcp_urp = rte_cpu_to_be_16(0);
+
+	tcp_hdr->cksum = rte_cpu_to_be_16(rte_ipv4_udptcp_cksum(ipv4_hdr, tcp_hdr));
+}
 
 // static inline void
 // fill_payload(struct payload *payload_data, struct flow_table *flow) {
@@ -171,7 +180,7 @@ fill_udp_header(struct rte_udp_hdr *udp_hdr, struct rte_ipv4_hdr *ipv4_hdr, cons
 //     flow->pkt_seq++;
 // }
 
-static struct rte_mbuf *make_testpkt(uint32_t queue_id, struct flow *flow)
+static struct rte_mbuf *make_testpkt(uint32_t queue_id, struct header_info *hdr)
 {
     
     struct rte_mbuf *mp = rte_pktmbuf_alloc(pktmbuf_pool[queue_id]);
@@ -189,21 +198,21 @@ static struct rte_mbuf *make_testpkt(uint32_t queue_id, struct flow *flow)
     uint16_t curr_ofs = 0;
 
     struct rte_ether_hdr *ether_h = rte_pktmbuf_mtod_offset(mp, struct rte_ether_hdr *, curr_ofs);
-	fill_ethernet_header(ether_h);
+	fill_ethernet_header(ether_h, hdr);
     curr_ofs += sizeof(struct rte_ether_hdr);
 
     struct rte_ipv4_hdr *ipv4_h = rte_pktmbuf_mtod_offset(mp, struct rte_ipv4_hdr *, curr_ofs);
-	fill_ipv4_header(ipv4_h, flow);
+	fill_ipv4_header(ipv4_h, hdr);
     curr_ofs += sizeof(struct rte_ipv4_hdr);
 
-    // struct rte_tcp_hdr *tcp_h = rte_pktmbuf_mtod_offset(mp, struct rte_tcp_hdr *, curr_ofs);
-	// fill_tcp_header(tcp_h, ipv4_h);
-    // curr_ofs += sizeof(struct rte_tcp_hdr);
+    // struct rte_udp_hdr *udp_h = rte_pktmbuf_mtod_offset(mp, struct rte_udp_hdr *, curr_ofs);
+	// fill_udp_header(udp_h, ipv4_h,hdr);
+    // curr_ofs += sizeof(struct rte_udp_hdr);
 
-    struct rte_udp_hdr *udp_h = rte_pktmbuf_mtod_offset(mp, struct rte_udp_hdr *, curr_ofs);
-	fill_udp_header(udp_h, ipv4_h,flow);
-    curr_ofs += sizeof(struct rte_udp_hdr);
-    
+    struct rte_tcp_hdr *tcp_h = rte_pktmbuf_mtod_offset(mp, struct rte_tcp_hdr *, curr_ofs);
+	fill_tcp_header(tcp_h, ipv4_h, hdr);
+    curr_ofs += sizeof(struct rte_tcp_hdr);
+
     // struct payload * payload_data= rte_pktmbuf_mtod_offset(mp, struct payload *, curr_ofs);
     // fill_payload(payload_data, flow);
 
@@ -302,58 +311,69 @@ static void lcore_main(uint32_t lcore_id)
     fflush(stdout);
 
     while (!force_quit && record_count < MAX_RECORD_COUNT) {
+    // while (!force_quit && record_count < MAX_RECORD_COUNT && pkt_count < PKTS_NUM) {
         for (i = 0; i < lconf->n_rx_queue; i++){
             #ifdef PCAP_ENABLE
             rte_pktmbuf_alloc_bulk(pktmbuf_pool[queue_id], 
                                    bufs_tx, 
                                    BURST_SIZE);
             #endif
-            // Transmit packet
-            for (j = 0; j < BURST_SIZE; j++){
-                struct flow flow_id;
-                flow_id.src_ip = SRC_IP_PREFIX + (uint32_t)(pkt_count % FLOW_NUM);
-                flow_id.dst_ip = ((192<<24) + (168<<16) + (200<<8)) + 1;
-                flow_id.src_port = 1234;
-                flow_id.dst_port = 4321;
-                
-                #ifndef PCAP_ENABLE
-                bufs_tx[j] = make_testpkt(lconf->rx_queue_list[i], &flow_id);
-                #endif
 
+            struct header_info hdr_info;
+            uint32_t ip_dst, ip_src;
+            static const struct rte_ether_addr eth_dst = {{ 0x00, 0x08, 0x00, 0x00, 0x03, 0x14 }};
+            static const struct rte_ether_addr eth_src = {{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 }};
+            inet_pton(AF_INET, "192.168.0.1", &ip_dst);
+            ip_dst = ntohl(ip_dst);
+            inet_pton(AF_INET, "10.0.0.0", &ip_src);
+            ip_src = ntohl(ip_src);
+
+            hdr_info.eth_dst = eth_dst;
+            hdr_info.eth_src = eth_src;
+            hdr_info.ipv4_dst = ip_dst;
+            hdr_info.ipv4_src = ip_src;
+            hdr_info.tcp_port_dst = 1;
+            hdr_info.tcp_port_src = 2;
+
+            for (j = 0; j < BURST_SIZE; j++){
+                #ifndef PCAP_ENABLE
+                ip_src = SRC_IP_PREFIX + (pkt_count % FLOW_NUM);
+                hdr_info.ipv4_src = ip_src;
+
+                bufs_tx[j] = make_testpkt(lconf->rx_queue_list[i], &hdr_info);
+                #endif
                 /* packet copy from buffer to send*/
                 // rte_memcpy(rte_pktmbuf_mtod(bufs_tx[j], void *), 
                 //            rte_pktmbuf_mtod(pkt_buffer[queue_id].mbufs[pkt_count], void*), 
                 //            pkt_buffer[queue_id].mbufs[pkt_count]->data_len); 
                 // bufs_tx[j]->pkt_len = pkt_buffer[queue_id].mbufs[pkt_count]->pkt_len;
                 // bufs_tx[j]->data_len = pkt_buffer[queue_id].mbufs[pkt_count]->data_len;
-                
                 txB[j] = bufs_tx[j]->data_len;
                 pkt_count++;
             }
-
+            // // packet hexadecimal print
+            // int a;
+            // printf("packet:\n");
+            // uint8_t* pkt_p = (uint8_t*)rte_pktmbuf_mtod(bufs_tx[0], void *);
+            // for(a = 0; a < ETH_HDR_LEN + IPV4_HDR_LEN + TCP_HDR_LEN + 10; a++){
+            //     printf("%02x ", pkt_p[a]);
+            //     if(a % 16 == 15){
+            //         printf("%d-%d", a-15, a);
+            //         printf("\n");
+            //     }
+            // }
+            // printf("\n");
+            // Send the packet batch
             uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, BURST_SIZE);
+            // uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs_tx, 1);
+            // sleep(3);
+
             total_tx += nb_tx;
-            for (j = 0; j < nb_tx; total_txB += txB[j], j++)
+            for (j = 0; j < nb_tx; j++){
+                total_txB += txB[j];
+            }
             if (nb_tx < BURST_SIZE){
                 rte_pktmbuf_free_bulk(bufs_tx + nb_tx, BURST_SIZE - nb_tx);
-            }
-            //Receive packets
-            const uint16_t nb_rx = rte_eth_rx_burst(lconf->port, lconf->rx_queue_list[i], bufs_rx, BURST_SIZE);
-            total_rx += nb_rx;
-            for (j = 0; j < nb_rx; total_txB += bufs_rx[j]->data_len, j++)
-            for (j = 0; j < nb_rx; j++){
-                int a;
-                printf("the packet %ld:\n", pkt_count);
-                uint8_t *pkt_p = rte_pktmbuf_mtod(bufs_rx[j], uint8_t *);
-                for(a = 0; a < 34; a++){
-                    printf("%02x ", pkt_p[a]);
-                    if(a % 16 == 15){
-                        printf("\n");
-                    }
-                }
-            }
-            if (nb_rx > 0){
-                rte_pktmbuf_free_bulk(bufs_rx, nb_rx);
             }
         }
         loop_count++;
@@ -361,39 +381,32 @@ static void lcore_main(uint32_t lcore_id)
         //save log
         time_now = rte_rdtsc();
         double time_inter_temp=(double)(time_now-time_last_print)/rte_get_timer_hz();
-        if (time_inter_temp >= 0.5){
-            uint64_t dtx, drx;
-            uint64_t dtxB, drxB;
+        if (time_inter_temp>=0.5){
+            uint64_t dtx;
+            uint64_t dtxB;
 
             dtx = total_tx - last_total_tx;
-            drx = total_rx - last_total_rx;
             dtxB = total_txB - last_total_txB;
-            drxB = total_rxB - last_total_rxB;
 
-            time_last_print = time_now;
+            time_last_print=time_now;
             last_total_tx = total_tx;
             last_total_txB = total_txB;
-            last_total_rx = total_rx;
-            last_total_rxB = total_rxB;
             flowlog_timeline[lcore_id][record_count].tx_pps_t = (double)dtx/time_inter_temp;
             flowlog_timeline[lcore_id][record_count].tx_bps_t = (double)dtxB*8/time_inter_temp;
-            flowlog_timeline[lcore_id][record_count].rx_pps_t = (double)drx/time_inter_temp;
-            flowlog_timeline[lcore_id][record_count].rx_bps_t = (double)drxB*8/time_inter_temp;
-          record_count++;
+
+            record_count++;
         }
     }
+    // uint64_t time_interval = rte_rdtsc() - start;
     double time_interval = (double)(rte_rdtsc() - start)/rte_get_timer_hz();
     APP_LOG("lcoreID %d: run time: %lf.\n", lcore_id, time_interval);
-    APP_LOG("lcoreID %d: Sent %ld pkts, received %ld pkts; TX: %lf pps, %lf bps; RX: %lf pps, %lf bps.\n", \
-            lcore_id, total_tx, total_rx, (double)total_tx/time_interval, (double) total_txB*8/time_interval, \
-            (double)total_rx/time_interval, (double) total_rxB*8/time_interval);
+    APP_LOG("lcoreID %d: Sent %ld pkts, received %ld pkts, TX: %lf pps, %lf bps.\n", \
+            lcore_id, total_tx, total_rx, (double)total_tx/time_interval, (double)total_txB*8/time_interval);
     APP_LOG("lcoreID %d: times of loop is %ld, should send packets %ld.\n", lcore_id, loop_count, loop_count*BURST_SIZE);
     tx_pkt_num[lcore_id] = total_tx;
     rx_pkt_num[lcore_id] = total_rx;
     tx_pps[lcore_id] = (double)total_tx/time_interval;
-    rx_pps[lcore_id] = (double)total_rx/time_interval;
     tx_bps[lcore_id] = (double)total_txB*8/time_interval;
-    rx_bps[lcore_id] = (double)total_rxB*8/time_interval;
 }
 
 static int
@@ -441,10 +454,10 @@ parse_app_opts(int argc, char **argv)
 		switch (opt) {
 		/* portmask */
 		case '1':
-            mac_read(optarg, &src_mac);
+            mac_read(optarg, &src_default_mac);
 			break;
 		case '2':
-            mac_read(optarg, &dst_mac);
+            mac_read(optarg, &dst_default_mac);
 			break;
 		/* long options */
 		default:
@@ -690,12 +703,9 @@ int main(int argc, char *argv[])
     pcap_close(handle);
     #endif
 
-
     uint64_t total_tx_pkt_num = 0, total_rx_pkt_num = 0;
     double total_tx_pps = 0.0, total_tx_bps = 0.0;
-    double total_rx_pps = 0.0, total_rx_bps = 0.0;
     FILE *fp;
-
     if (unlikely(access(THROUGHPUT_FILE, 0) != 0)){
         fp = fopen(THROUGHPUT_FILE, "a+");
         if(unlikely(fp == NULL)){
@@ -705,42 +715,35 @@ int main(int argc, char *argv[])
     }else{
         fp = fopen(THROUGHPUT_FILE, "a+");
     }
+    
     for(i = 0; i < MAX_LCORES; i++){
         total_tx_pkt_num += tx_pkt_num[i];
         total_rx_pkt_num +=rx_pkt_num[i];
         total_tx_pps += tx_pps[i];
         total_tx_bps += tx_bps[i];
-        total_rx_pps += rx_pps[i],
-        total_rx_bps += rx_bps[i];
     }
-    fprintf(fp, "%d,%ld,%d,%d,%ld,%ld,%lf,%lf,%lf,%lf\r\n", \
-            n_lcores, timetag.tv_sec, FLOW_NUM, PKT_LEN, total_tx_pkt_num, total_rx_pkt_num, \
-            total_tx_pps, total_tx_bps, total_rx_pps, total_rx_bps);
+    fprintf(fp, "%d,%ld,%d,%d,%ld,%ld,%lf,%lf,0,0\r\n", \
+            n_lcores, timetag.tv_sec, FLOW_NUM, PKT_LEN, total_tx_pkt_num, total_rx_pkt_num, total_tx_pps, total_tx_bps);
     fclose(fp);
-    APP_LOG("Total Sent %ld pkts, received %ld pkts; TX: %lf pps, %lf bps; RX: %lf pps, %lf bps.\n", \
-            total_tx_pkt_num, total_rx_pkt_num, total_tx_pps, total_tx_bps, total_rx_pps, total_rx_bps);
- 
+    APP_LOG("Total Sent %ld pkts, received %ld pkts, TX: %lf pps, %lf bps.\n", \
+            total_tx_pkt_num, total_rx_pkt_num, total_tx_pps, total_tx_bps);
+
     if (unlikely(access(THROUGHPUT_TIME_FILE, 0) != 0)){
         fp = fopen(THROUGHPUT_TIME_FILE, "a+");
-        fprintf(fp, "core,timestamp,flow_num,pkt_len,time, \
-                     send_pps,send_bps,rcv_pps,rcv_bps\r\n");
+        fprintf(fp, "core,timestamp,flow_num,pkt_len,time,send_pps,send_bps,rcv_pps,rcv_bps\r\n");
     }else{
         fp = fopen(THROUGHPUT_TIME_FILE, "a+");
     }
     for (i = 0;i<MAX_RECORD_COUNT;i++){
         double tx_pps_p = 0, tx_bps_p = 0;
-        double rx_pps_p = 0, rx_bps_p = 0;
         for (j = 0;j<MAX_LCORES;j++){
             if(rte_lcore_is_enabled(j)) {
                 tx_pps_p += flowlog_timeline[j][i].tx_pps_t;
-                tx_bps_p += flowlog_timeline[j][i].tx_bps_t;
-                rx_pps_p += flowlog_timeline[j][i].rx_pps_t;
-                rx_bps_p += flowlog_timeline[j][i].rx_bps_t;
+                tx_bps_p += flowlog_timeline[j][i].tx_pps_t;
             }
         }
-        fprintf(fp, "%d,%ld,%d,%d,%d,%lf,%lf,%lf,%lf\r\n", \
-                n_lcores, timetag.tv_sec, FLOW_NUM, PKT_LEN, i, \
-                tx_pps_p,tx_bps_p,rx_pps_p,rx_bps_p);
+        fprintf(fp, "%d,%ld,%d,%d,%d,%lf,%lf,0,0\r\n", \
+                n_lcores, timetag.tv_sec, FLOW_NUM, PKT_LEN, i, tx_pps_p, tx_bps_p);
     }
     fclose(fp);
 
@@ -749,6 +752,10 @@ int main(int argc, char *argv[])
             free(flowlog_timeline[j]);
         }
     }
+    // /* Calculate minimum TSC diff for returning signed packets */
+    // min_txintv *= rte_get_timer_hz() / US_PER_S;
+    // printf("TSC freq: %lu Hz\n", rte_get_timer_hz());
+
     /* Cleaning up. */
     fflush(stdout);
 APP_RTE_CLEANUP:
@@ -759,4 +766,3 @@ APP_RTE_CLEANUP:
 
     return 0;
 }
-

@@ -8,5 +8,5 @@
 
 allow_experimental_apis = true
 sources = files(
-        'pkt_sendcir_mul_auto_sta.c',
+        'pkt_sendcir_mul_auto_sta2.c',
 )

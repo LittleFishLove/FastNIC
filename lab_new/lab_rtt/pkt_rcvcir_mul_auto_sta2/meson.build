@@ -8,5 +8,5 @@
 
 allow_experimental_apis = true
 sources = files(
-        'pkt_rcvcir_mul_auto_sta.c',
+        'pkt_rcvcir_mul_auto_sta2.c',
 )

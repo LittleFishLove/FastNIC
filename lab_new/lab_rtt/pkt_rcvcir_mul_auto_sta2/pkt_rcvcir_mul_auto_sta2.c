@@ -40,17 +40,6 @@
 #define APP_LOG(...) RTE_LOG(INFO, USER1, __VA_ARGS__)
 #define PRN_COLOR(str) ("\033[0;33m" str "\033[0m")	// Yellow accent
 
-#define OFF_ETHHEAD	(sizeof(struct rte_ether_hdr))
-#define OFF_IPV42SRCIP (offsetof(struct rte_ipv4_hdr, hdr_checksum))
-#define OFF_IPV42DSTIP (offsetof(struct rte_ipv4_hdr, src_addr))
-
-#define MBUF_IPV4_2P(m, p)	\
-	rte_pktmbuf_mtod_offset((m), uint8_t *, OFF_ETHHEAD + p)
-#define IP_LEN ((32/8))
-
-#define THROUGHPUT_FILE "../lab_results/" PROGRAM "/throughput.csv"
-#define THROUGHPUT_TIME_FILE   "../lab_results/" PROGRAM "/throughput_time.csv"
-
 struct rte_eth_conf port_conf = {
 	.rxmode = {
 		.mq_mode = RTE_ETH_MQ_RX_RSS,
@@ -96,14 +85,6 @@ double tx_bps[MAX_LCORES];
 double rx_bps[MAX_LCORES];
 struct flow_log *flowlog_timeline[MAX_LCORES];
 
-static void swap_ip(struct rte_mbuf *packet_buf){
-    struct rte_ipv4_hdr *ipv4_h = rte_pktmbuf_mtod_offset(packet_buf, struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
-    uint32_t temp_ip = ipv4_h->src_addr;
-    ipv4_h->src_addr = ipv4_h->dst_addr;
-    ipv4_h->dst_addr = temp_ip;
-}
-
-
 /*
  * The lcore main. This is the main thread that does the work, reading from
  * an input port and writing to an output port.
@@ -132,7 +113,6 @@ static void lcore_main(uint32_t lcore_id)
     uint64_t start = rte_rdtsc();
     uint64_t time_last_print = start;
     uint64_t time_now;
-    uint64_t pkt_count = 0;
 
     if (unlikely(flowlog_timeline[lcore_id] != NULL)){
         rte_exit(EXIT_FAILURE, "There are error when allocate memory to flowlog.\n");
@@ -142,31 +122,16 @@ static void lcore_main(uint32_t lcore_id)
     }
 
     while (!force_quit && record_count < MAX_RECORD_COUNT) {
-        int i, j;
+        int i;
         for (i = 0; i < lconf->n_rx_queue; i++){
             const uint16_t nb_rx = rte_eth_rx_burst(lconf->port, lconf->rx_queue_list[i], bufs, BURST_SIZE);
             if(nb_rx != 0){
-                total_rxB += (bufs[0]->data_len*nb_rx);
-                for (j = 0; j < nb_rx; j++){
-                    swap_ip(bufs[j]);
-                    // int a;
-                    // printf("the packet %ld:\n", pkt_count);
-                    // uint8_t *pkt_p = rte_pktmbuf_mtod(bufs[j], uint8_t *);
-                    // for(a = 0; a < 78; a++){
-                    //     printf("%02x ", pkt_p[a]);
-                    //     if(a % 16 == 15){
-                    //         printf("\n");
-                    //     }
-                    // }
-                    pkt_count ++;
-
-                }
-                const uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs, nb_rx);
                 total_rx += nb_rx;
-                total_tx += nb_tx;    
-                for (j = 0; j < nb_rx; total_rxB += (bufs[j]->data_len), j++);
-                for (j = 0; j < nb_tx; total_rxB += (bufs[j]->data_len), j++);
-                rte_pktmbuf_free_bulk(bufs, nb_rx);
+                total_rxB += (bufs[0]->data_len*nb_rx);
+                const uint16_t nb_tx =rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs, nb_rx);
+                if(nb_tx < nb_rx){
+                    rte_pktmbuf_free_bulk(bufs, nb_rx - nb_tx);
+                }
             }
         }
         loop_count++;
@@ -175,24 +140,17 @@ static void lcore_main(uint32_t lcore_id)
         time_now = rte_rdtsc();
         double time_inter_temp=(double)(time_now-time_last_print)/rte_get_timer_hz();
         if (time_inter_temp>=0.5){
-            uint64_t drx, dtx;
-            uint64_t drxB, dtxB;
+            uint64_t drx;
+            uint64_t drxB;
 
             drx = total_rx - last_total_rx;
-            dtx = total_tx - last_total_tx;
             drxB = total_rxB - last_total_rxB;
-            dtxB = total_txB - last_total_txB;
 
             time_last_print=time_now;
             last_total_rx = total_rx;
-            last_total_tx = total_tx;
             last_total_rxB = total_rxB;
-            last_total_txB = total_txB;
-
             flowlog_timeline[lcore_id][record_count].rx_pps_t = (double)drx/time_inter_temp;
-            flowlog_timeline[lcore_id][record_count].tx_pps_t = (double)dtx/time_inter_temp;
             flowlog_timeline[lcore_id][record_count].rx_bps_t = (double)drxB*8/time_inter_temp;
-            flowlog_timeline[lcore_id][record_count].tx_bps_t = (double)dtxB*8/time_inter_temp;
 
             record_count++;
         }
@@ -460,18 +418,14 @@ int main(int argc, char *argv[])
     }
     for (i = 0;i<MAX_RECORD_COUNT;i++){
         double rx_pps_p = 0, rx_bps_p = 0;
-        double tx_pps_p = 0, tx_bps_p = 0;
-
         for (j = 0;j<MAX_LCORES;j++){
             if(rte_lcore_is_enabled(j)) {
                 rx_pps_p += flowlog_timeline[j][i].rx_pps_t;
-                tx_pps_p += flowlog_timeline[j][i].tx_pps_t;
                 rx_bps_p += flowlog_timeline[j][i].rx_bps_t;
-                tx_bps_p += flowlog_timeline[j][i].tx_bps_t;
             }
         }
-        fprintf(fp, "%d,%ld,%d,%lf,%lf,%lf,%lf\r\n", \
-                n_lcores, timetag.tv_sec, i, tx_pps_p, tx_bps_p,rx_pps_p, rx_bps_p);
+        fprintf(fp, "%d,%ld,%d,0,0,%lf,%lf\r\n", \
+                n_lcores, timetag.tv_sec, i, rx_pps_p, rx_bps_p);
     }
     fclose(fp);
 
