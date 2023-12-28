@@ -161,7 +161,6 @@ static void lcore_main(uint32_t lcore_id)
                     pkt_count ++;
 
                 }
-                printf("\n");
                 const uint16_t nb_tx = rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs, nb_rx);
                 total_rx += nb_rx;
                 total_tx += nb_tx;    
