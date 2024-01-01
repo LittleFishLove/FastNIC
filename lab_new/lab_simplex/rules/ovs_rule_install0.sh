@@ -1,5 +1,5 @@
 ip_prefix=$((192<<24))
-
+ovsbr="ovsbr1"
 function num2ip()
 {
     num=$1
@@ -25,8 +25,8 @@ function ip2num()
     echo "$(((a << 24) + (b << 16) + (c << 8) + d))"
 }
 
-sudo ovs-ofctl del-flows ovsdpdk
-# sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ovsdpdk
+sudo ovs-ofctl del-flows ${ovsbr}
+# sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ${ovsbr}
 echo "finish del"
 
 if [[ ! -d "./data/" ]]
@@ -36,7 +36,7 @@ fi
 
 
 O_CIRCLE_NUM=10
-I_CIRCLE_NUM=10000
+I_CIRCLE_NUM=1
 for((i=0;i<$O_CIRCLE_NUM;i++));
 do
   rm ./data/rule_$i.txt
@@ -51,7 +51,7 @@ do
     fi
     echo "ip,in_port=p0,ip_src=$ip_dot,actions=output:pf0hpf" >> ./data/rule_$i.txt
   done
-  sudo ovs-ofctl add-flows ovsbr1 ./data/rule_$i.txt
+  sudo ovs-ofctl add-flows ${ovsbr} ./data/rule_$i.txt
   # sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl add-flows ovsdpdk rules/rule_$i.txt
   echo "finish add $(($i*$I_CIRCLE_NUM)) - $((($i+1)*$I_CIRCLE_NUM-1))"
 done
