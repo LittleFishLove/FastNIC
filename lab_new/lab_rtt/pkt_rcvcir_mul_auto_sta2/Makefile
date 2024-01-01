@@ -2,10 +2,10 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = pkt_rcv_mul_auto_sta3
+APP = pkt_rcvcir_mul_auto_sta2
 
 # all source are stored in SRCS-y
-SRCS-y := pkt_rcv_mul_auto_sta3.c
+SRCS-y := pkt_rcvcir_mul_auto_sta2.c
 
 PKGCONF ?= pkg-config
 

@@ -126,9 +126,16 @@ static void lcore_main(uint32_t lcore_id)
         for (i = 0; i < lconf->n_rx_queue; i++){
             const uint16_t nb_rx = rte_eth_rx_burst(lconf->port, lconf->rx_queue_list[i], bufs, BURST_SIZE);
             if(nb_rx != 0){
+                const uint16_t nb_tx =rte_eth_tx_burst(lconf->port, lconf->tx_queue_list[i], bufs, nb_rx);
+                if(nb_tx < nb_rx){
+                    rte_pktmbuf_free_bulk(bufs, nb_rx - nb_tx);
+                }
+
                 total_rx += nb_rx;
-                total_rxB += (bufs[0]->data_len*nb_rx);
-                rte_pktmbuf_free_bulk(bufs, nb_rx);
+                total_rxB += (bufs[0]->data_len * nb_rx);
+                total_tx += nb_tx;
+                total_txB += (bufs[0]->data_len * nb_tx);
+
             }
         }
         loop_count++;
@@ -137,18 +144,23 @@ static void lcore_main(uint32_t lcore_id)
         time_now = rte_rdtsc();
         double time_inter_temp=(double)(time_now-time_last_print)/rte_get_timer_hz();
         if (time_inter_temp>=0.5){
-            uint64_t drx;
-            uint64_t drxB;
+            uint64_t drx, dtx;
+            uint64_t drxB, dtxB;
 
             drx = total_rx - last_total_rx;
             drxB = total_rxB - last_total_rxB;
+            dtx = total_tx - last_total_tx;
+            dtxB = total_txB - last_total_txB;
 
             time_last_print=time_now;
             last_total_rx = total_rx;
             last_total_rxB = total_rxB;
+            last_total_tx = total_tx;
+            last_total_txB = total_txB;
             flowlog_timeline[lcore_id][record_count].rx_pps_t = (double)drx/time_inter_temp;
             flowlog_timeline[lcore_id][record_count].rx_bps_t = (double)drxB*8/time_inter_temp;
-
+            flowlog_timeline[lcore_id][record_count].tx_pps_t = (double)dtx/time_inter_temp;
+            flowlog_timeline[lcore_id][record_count].tx_bps_t = (double)dtxB*8/time_inter_temp;
             record_count++;
         }
     }
@@ -157,10 +169,12 @@ static void lcore_main(uint32_t lcore_id)
     APP_LOG("Sent %ld pkts, received %ld pkts, RX: %lf pps, %lf bps.\n", \
             total_tx, total_rx, (double)total_rx/time_interval, (double)total_rxB*8/time_interval);
     APP_LOG("times of loop is %ld, should send packets %ld.\n", loop_count, loop_count*32);
-    // tx_pkt_num[lcore_id] = total_tx;
     rx_pkt_num[lcore_id] = total_rx;
     rx_pps[lcore_id] = (double)total_rx/time_interval;
     rx_bps[lcore_id] = (double)total_rxB*8/time_interval;
+    tx_pkt_num[lcore_id] = total_tx;
+    tx_pps[lcore_id] = (double)total_tx/time_interval;
+    tx_bps[lcore_id] = (double)total_txB*8/time_interval;
 }
 
 
@@ -415,14 +429,18 @@ int main(int argc, char *argv[])
     }
     for (i = 0;i<MAX_RECORD_COUNT;i++){
         double rx_pps_p = 0, rx_bps_p = 0;
+        double tx_pps_p = 0, tx_bps_p = 0;
+
         for (j = 0;j<MAX_LCORES;j++){
             if(rte_lcore_is_enabled(j)) {
                 rx_pps_p += flowlog_timeline[j][i].rx_pps_t;
                 rx_bps_p += flowlog_timeline[j][i].rx_bps_t;
+                tx_pps_p += flowlog_timeline[j][i].tx_pps_t;
+                tx_bps_p += flowlog_timeline[j][i].tx_bps_t;
             }
         }
-        fprintf(fp, "%d,%ld,%d,0,0,%lf,%lf\r\n", \
-                n_lcores, timetag.tv_sec, i, rx_pps_p, rx_bps_p);
+        fprintf(fp, "%d,%ld,%d,%lf,%lf,%lf,%lf\r\n", \
+                n_lcores, timetag.tv_sec, i, tx_pps_p, tx_bps_p, rx_pps_p, rx_bps_p);
     }
     fclose(fp);
 

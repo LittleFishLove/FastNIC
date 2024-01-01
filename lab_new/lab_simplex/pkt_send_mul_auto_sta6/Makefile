@@ -2,10 +2,11 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = pkt_rcv_mul_auto_sta3
+APP = pkt_send_mul_auto_sta6
 
 # all source are stored in SRCS-y
-SRCS-y := pkt_rcv_mul_auto_sta3.c
+SRCS-y := pkt_send_mul_auto_sta6.c
+
 
 PKGCONF ?= pkg-config
 
@@ -20,13 +21,12 @@ D_IS_NSL := -DTPUT_PFX=\"..\"
 else ifeq ($(shell hostname), nsl-node12)
 # D_IS_NSL := -DTPUT_PFX=\"/local/qyn\"
 D_IS_NSL := -DTPUT_PFX=\"..\"
-else ifeq ($(shell hostname), ipuserver)
-D_IS_NSL := -DTPUT_PFX=\"/root/qyn/FastNIC/lab_new/lab_simplex\"
 else ifeq ($(shell hostname), rdma2-server)
 D_IS_NSL := -DTPUT_PFX=\"/root/qyn/FastNIC/lab_new/lab_simplex\"
 else
 D_IS_NSL := -DTPUT_PFX=\"..\"
 endif
+
 
 all: shared
 .PHONY: shared static
