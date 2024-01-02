@@ -1,4 +1,8 @@
+#add rules in_port=dpdk_p0,ip_src=$ip_dot,actions=output:dpdk_p0hpf
+#add rules in_port=dpdk_p0hpf,ip_src=$ip_dot,actions=output:dpdk_p0
+#rule number = O_CIRCLE_NUM * I_CIRCLE_NUM * 2(2 kinds of rules)
 ip_prefix=$((192<<24))
+ovsbr="ovsdpdk"
 
 function num2ip()
 {
@@ -26,15 +30,20 @@ function ip2num()
 }
 
 #sudo ovs-ofctl del-flows ovsdpdk
-sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ovsdpdk
-echo "finish del"
+sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ${ovsbr}
+echo "finish del former rules"
+
+if [[ ! -d "./data/" ]]
+then
+    mkdir -p ./data/
+fi
+rm ./data/rule_*.txt
+echo "finish del former rules.txt"
 
 O_CIRCLE_NUM=10
 I_CIRCLE_NUM=10000
 for((i=0;i<$O_CIRCLE_NUM;i++));
 do
-  rm rule_$i.txt
-  echo "del rule_$i.txt"
   for((j=0;j<I_CIRCLE_NUM;j++));
   do
     ip=$(($ip_prefix+$j+$i*$I_CIRCLE_NUM))
@@ -43,9 +52,9 @@ do
     then
       echo $ip_dot
     fi
-    echo "ip,in_port=dpdk_p0hpf,ip_src=$ip_dot,actions=output:dpdk_p0" >> rule_$i.txt
-    echo "ip,in_port=dpdk_p0,ip_src=$ip_dot,actions=output:dpdk_p0hpf" >> rules/rule_$i.txt
+    echo "ip,in_port=dpdk_p0hpf,ip_src=$ip_dot,actions=output:dpdk_p0" >> data/rule_$i.txt
+    echo "ip,in_port=dpdk_p0,ip_src=$ip_dot,actions=output:dpdk_p0hpf" >> data/rule_$i.txt
   done
-  sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl add-flows ovsdpdk rules/rule_$i.txt
+  sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl add-flows ${ovsbr} data/rule_$i.txt
   echo "finish add $(($i*$I_CIRCLE_NUM)) - $((($i+1)*$I_CIRCLE_NUM-1))"
 done

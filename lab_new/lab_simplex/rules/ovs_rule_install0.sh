@@ -1,3 +1,5 @@
+#add rules in_port=dpdk_p0,ip_src=$ip_dot,actions=output:dpdk_p0hpf
+
 ip_prefix=$((192<<24))
 ovsbr="ovsbr1"
 function num2ip()
@@ -33,14 +35,12 @@ if [[ ! -d "./data/" ]]
 then
     mkdir -p ./data/
 fi
-
+rm ./data/rule_*.txt
 
 O_CIRCLE_NUM=10
 I_CIRCLE_NUM=1
 for((i=0;i<$O_CIRCLE_NUM;i++));
 do
-  rm ./data/rule_$i.txt
-  echo "del ./data/rule_$i.txt"
   for((j=0;j<I_CIRCLE_NUM;j++));
   do
     ip=$(($ip_prefix+$j+$i*$I_CIRCLE_NUM))
