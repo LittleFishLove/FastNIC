@@ -125,9 +125,7 @@ static void lcore_main(uint32_t lcore_id){
 	one_flow_install_bf3();
     printf("Core %u finish rules install. [Ctrl+C to quit]\n", rte_lcore_id());
 
-	while (!force_quit ) {
-		printf("waiting to quit\n");
-	}
+	while (!force_quit) {}
 	// /* Create flow for send packet with. 8< */    
 	// int i;
 	// for(i = 0 ; i < FLOW_NUM; i++){
