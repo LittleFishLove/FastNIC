@@ -251,12 +251,14 @@ flow_create_bf3(uint16_t port_id, struct rte_flow_attr *attr,
 	action[0].type = RTE_FLOW_ACTION_TYPE_COUNT;
 	struct rte_flow_action_count counter;
 	counter.id = action_args->counter_id;
+	action[0].conf = &counter;
 
 	action[1].type = RTE_FLOW_ACTION_TYPE_PORT_ID;
 	struct rte_flow_action_port_id forward;
 	forward.original = 0;
 	forward.reserved = 0;
 	forward.id = action_args->port_id;
+	action[1].conf = &forward;
 
 	action[2].type = RTE_FLOW_ACTION_TYPE_END;
 
@@ -291,8 +293,9 @@ one_flow_install_bf3(void)
 	memset(&attr, 0, sizeof(struct rte_flow_attr));
 	attr.group = GROUP_ID;
 	attr.priority = 0;
-	attr.ingress = 1;
+	attr.ingress = 0;
 	attr.egress = 0;
+	attr.transfer = 1;
 
 	uint32_t ip_src;
 	inet_pton(AF_INET, "192.0.0.0", &ip_src);
@@ -308,5 +311,14 @@ one_flow_install_bf3(void)
 	struct rte_flow *flow = NULL;
 	uint64_t add_cycle;
 	flow = flow_create_bf3(in_port_id, &attr, &header, &mask, &action_args, &error, &add_cycle);
+	double add_time = (double) add_cycle / rte_get_timer_hz();
+	if (!flow) {
+		printf("Flow can't be created %d message: %s\n",
+			    error.type,
+			    error.message ? error.message : "(no stated reason)");
+	}
+	else{
+		printf("already add 1 flow, add cycle is %ld, add time is %lf\n", add_cycle, add_time);
+	}
 }
 

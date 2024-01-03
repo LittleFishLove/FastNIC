@@ -1,4 +1,7 @@
+#add jump rules which results is "in_port=dpdk_p0hpf,ip_src=$ip_dot,actions=output:dpdk_p0
+# not sure is right
 ip_prefix=$((192<<24))
+ovsbr="ovsdpdk"
 
 function num2ip()
 {
@@ -56,8 +59,16 @@ get_highest_one_position() {
   echo $position
 }
 
-sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ovsdpdk
-echo "finish del"
+#sudo ovs-ofctl del-flows ovsdpdk
+sudo /home/ubuntu/software/ovs_all/ovs_install/usr/bin/ovs-ofctl del-flows ${ovsbr}
+echo "finish del former rules"
+
+if [[ ! -d "./data/" ]]
+then
+    mkdir -p ./data/
+fi
+rm ./data/rule_*.txt
+echo "finish del former rules.txt"
 
 O_CIRCLE_NUM=10
 I_CIRCLE_NUM=10000
