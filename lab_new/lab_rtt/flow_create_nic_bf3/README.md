@@ -10,3 +10,5 @@ flow_create_nic_bf3
   add function:
     1.create flow rules faking ovs generation rules
     2.do not quit until send command
+  **!! not function now, rules is right, but packet can not be forward as the testpmd run
+  **!! problem may relate to the port init
