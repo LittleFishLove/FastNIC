@@ -1,3 +1,5 @@
+#test without auto script
+
 flow_num=5
 # in bf3
 # #run my app
