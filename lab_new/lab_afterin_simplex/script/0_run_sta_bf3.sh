@@ -4,6 +4,7 @@
 file=pkt_send_mul_auto_sta6
 remotefile=pkt_rcv_mul_auto_sta3
 lab=lab_afterin_simplex
+py_rule_gen="0_rule_gen.py"
 
 line="bf3"
 send_host="node2"
@@ -42,8 +43,8 @@ senddpdk_runtime=5 #second
 test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-# flow_num_list=(100000 10000 100)
-flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+flow_num_list=(100000 100)
+# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -51,6 +52,9 @@ for ((i=0; i<$cir_time_fn; i++))
 do
     flow_num=${flow_num_list[$i]}
 
+    ssh ubuntu@${arm_ip} "cd ${run_path}/script && rm rule_testpmd.txt"
+    ssh ubuntu@${arm_ip} "cd ${run_path}/script && sed -i \"s/rule_num =.*$/rule_num = ${flow_num}/\" ${py_rule_gen}"
+    ssh ubuntu@${arm_ip} "cd ${run_path}/script && python ${py_rule_gen}"
     echo "expect bf3testmpd.expect $testpmd_runtime"
     expect bf3testmpd.expect $testpmd_runtime >> ../lab_results/log/bf3_testpmd.out 2>&1 &
     sleep 15s
