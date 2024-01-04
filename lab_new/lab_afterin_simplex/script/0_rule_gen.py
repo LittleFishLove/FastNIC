@@ -1,7 +1,9 @@
 import socket
+import sys
 
 def main():
-    rule_num = 200
+    script_name = sys.argv[0]
+    rule_num = sys.argv[1]
     ip_prefix = 10 << 24
     command_template = "flow create 0 group 0 transfer pattern eth / ipv4 src is 10.0.0.0 / tcp / end actions port_id id 1 / count / end"
 
