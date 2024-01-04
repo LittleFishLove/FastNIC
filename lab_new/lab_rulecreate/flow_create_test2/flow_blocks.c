@@ -164,6 +164,10 @@ generate_ipv4_udp_flow(uint16_t port_id, uint16_t rx_q,
 	action[1].conf = &queue;
 	action[2].type = RTE_FLOW_ACTION_TYPE_END;
 
+	// action[0].type = RTE_FLOW_ACTION_TYPE_QUEUE;
+	// action[0].conf = &queue;
+	// action[1].type = RTE_FLOW_ACTION_TYPE_END;
+
 	/*
 	 * set the first level of the pattern (ETH).
 	 * since in this example we just want to get the
