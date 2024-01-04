@@ -1,5 +1,4 @@
-flow_num=200
-
+flow_num=5
 # in bf3
 # #run my app
 # cd flow_create_nic_bf3/
@@ -8,7 +7,7 @@ flow_num=200
 sed -i "s/rule_num =.*$/rule_num = ${flow_num}/" rule_gen.py
 python3 rule_gen.py
 sudo /opt/mellanox/dpdk/bin//dpdk-testpmd -l 0-3 -a 03:00.0,representor=[0,65535] -- -i
-testpmd> load rule_testpmd.txt
+echo load rule_testpmd.txt
 
 # #test command
 # ## testpmd

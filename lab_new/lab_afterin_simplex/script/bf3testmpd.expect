@@ -1,0 +1,13 @@
+#!/usr/bin/expect
+set waiting_time [lindex $argv 0]
+
+spawn sudo /opt/mellanox/dpdk/bin//dpdk-testpmd -l 0-1 -a 03:00.0,representor=\[0,65535\] -- -i
+
+expect "testpmd>"
+send "load ../rule_testpmd.txt\r"
+
+expect "testpmd>"
+sleep ${waiting_time}
+send "quit\r"
+
+expect eof
