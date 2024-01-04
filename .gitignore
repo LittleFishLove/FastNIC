@@ -6,6 +6,7 @@ lab_all/*/lab_results/
 */*/build
 lab_all/*/*/build
 lab_new/*/*/build
+lab_new/lab_afterin_simplex/rule_testpmd.txt
 
 quantile_test/data
 quantile_test/*/*.csv
