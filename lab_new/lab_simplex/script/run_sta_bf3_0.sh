@@ -72,13 +72,13 @@ do
     echo -e "off_thre,zipf_para\r\n${off_thre},${zipf_para}" > ${run_path}/lab_results/${file}/send_$times/para.csv
 
     mkdir -p ${run_path}/lab_results/${remotefile}/rcv_$times
-    scp $user@$recv_ip:$run_path/lab_results/${remotefile}/*.csv $run_path/lab_results/${remotefile}/rcv_$times
-    ssh $user@$recv_ip "cd $run_path/lab_results/$remotefile && rm -f ./*.csv"
+    scp -P 1022 $user@$recv_ip:$run_path/lab_results/${remotefile}/*.csv $run_path/lab_results/${remotefile}/rcv_$times
+    ssh -p 1022 $user@$recv_ip "cd $run_path/lab_results/$remotefile && rm -f ./*.csv"
 
     ovsfile_path="/home/ubuntu/software/FastNIC/lab_results/ovs_log"
     mkdir -p ${run_path}/lab_results/ovslog/log_$times
-    scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
-    ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
+    scp -P 1022 ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
+    ssh -p 1022 ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ((times++))
 done
 
