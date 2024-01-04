@@ -10,7 +10,7 @@ set run_para [lindex $argv 5]
 set ip 10.15.198.160
 set host node1
 
-spawn ssh $user@$ip
+spawn ssh -p 1022 $user@$ip
 
 expect "$user@$host" 
 send "cd $run_path/script\r" 

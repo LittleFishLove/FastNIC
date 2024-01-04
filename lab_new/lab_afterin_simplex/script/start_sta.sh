@@ -75,7 +75,6 @@ src_pci=`ethtool -i ${src_nic_name}|grep bus-info|awk '{print $2}'`
 echo run ${file_name} app, from ${src_nic_name} to ${dst_ip}
 echo src_mac:${src_mac},src_pci:${src_pci}
 echo dst_mac:${dst_mac}
-echo -e '\n'
 
 # init environment
 if [[ ${host_name} == "149" ]]
