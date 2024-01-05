@@ -76,9 +76,10 @@ do
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     rcv_run_para="flow_num $flow_num pkt_len -1 flow_size $flow_size test_time $test_time_rcv srcip_num $srcip_num dstip_num $dstip_num zipf_para -1"
 
-    echo "expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line \"$rcv_run_para\" >> ../lab_results/log/remote.out 2>&1 &"
-    echo -e "\n"
-    expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line "$rcv_run_para" >> ../lab_results/log/remote.out 2>&1 &
+    # echo "expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line \"$rcv_run_para\" >> ../lab_results/log/remote.out 2>&1 &"
+    # echo -e "\n"
+    # expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line "$rcv_run_para" >> ../lab_results/log/remote.out 2>&1 &
+    ssh -p 1022 $user@$recv_ip "./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"rcv_run_para\""
     sleep 8s
 
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
