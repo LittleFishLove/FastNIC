@@ -79,7 +79,7 @@ do
     # echo "expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line \"$rcv_run_para\" >> ../lab_results/log/remote.out 2>&1 &"
     # echo -e "\n"
     # expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line "$rcv_run_para" >> ../lab_results/log/remote.out 2>&1 &
-    ssh -p 1022 $user@$recv_ip "./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"rcv_run_para\""
+    ssh -p 1022 $user@$recv_ip "cd ${run_path}/script && ./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"rcv_run_para\""
     sleep 8s
 
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
