@@ -10,7 +10,9 @@ run_path="/home/qyn/software/FastNIC/lab_new/$lab"
 
 cd $run_path
 rm ./lab_results/log/remote.out
-rm ./lab_results/log/cx4.out
+rm ./lab_results/log/bf3.out
+rm ./lab_results/log/bf3_arm.out
+
 
 rm -rf ./lab_results/$file/*
 rm -rf ./lab_results/$remotefile/*

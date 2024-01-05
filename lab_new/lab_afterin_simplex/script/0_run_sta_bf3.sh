@@ -72,14 +72,13 @@ do
     done
 
     echo "  :finish flow rule install"
-
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     rcv_run_para="flow_num $flow_num pkt_len -1 flow_size $flow_size test_time $test_time_rcv srcip_num $srcip_num dstip_num $dstip_num zipf_para -1"
 
     # echo "expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line \"$rcv_run_para\" >> ../lab_results/log/remote.out 2>&1 &"
     # echo -e "\n"
     # expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line "$rcv_run_para" >> ../lab_results/log/remote.out 2>&1 &
-    ssh -p 1022 $user@$recv_ip "cd ${run_path}/script && ./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"rcv_run_para\""
+    ssh -p 1022 $user@$recv_ip "cd ${run_path}/script && ./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"$rcv_run_para\"" >> ../lab_results/log/remote.out 2>&1 &
     sleep 8s
 
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
@@ -99,7 +98,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/log/bf3_arm.out 2>&1 &
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done
