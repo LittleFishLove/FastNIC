@@ -11,8 +11,8 @@ send_ip="22.22.22.186"
 recv_host="ipuserver"
 recv_ip="22.22.22.171"
 user="root"
-run_path="/root/qyn/software/FastNIC/lab_new/${lab}"
-ipu_run_path="/root/LAB_code/FastNIC/lab_new/lab_afterin_simplex/script"
+run_path="/root/qyn/FastNIC/lab_new/${lab}"
+ipu_run_path="/root/LAB_code/FastNIC/lab_new/${lab}"
 
 if [[ ! -d "${run_path}/lab_results/log" ]]
 then
@@ -94,7 +94,7 @@ do
     tmux kill-session -t ${rcv_tmux}
 
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "quit" Enter
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux capture-pane -pS - -t ${ipu_tmux} >> ../lab_results/ipu_log/ipu_${times}.out 2>&1 &
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux capture-pane -pS - -t ${ipu_tmux} >> ${run_path}/lab_results/ipu_log/ipu_${times}.out 2>&1 &
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux kill-session -t ${ipu_tmux}
     ((times++))
 done
