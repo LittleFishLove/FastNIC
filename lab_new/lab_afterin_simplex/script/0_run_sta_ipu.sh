@@ -1,3 +1,4 @@
+#!/bin/bash
 # node2 send packets to node1
 # 均匀分布，不同发包侧core，不同flow number，不同pkt size，
 # 事先下载好表项，仅测试转发性能
@@ -52,12 +53,11 @@ do
 
     #rcv
     tmux new-session -d -s ${rcv_tmux}
-    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -b vfio-pci e4:00.0" Enter
-    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -b vfio-pci e4:00.1" Enter
-    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -s" Enter
-    tmux send-keys -t ${rcv_tmux} "/root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a "e4:00.0,vport[0]" -a "e4:00.1,vport[1]" -- -i --rxq=8 --txq=8" Enter
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.0" Enter
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.1" Enter
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -s" Enter
+    tmux send-keys -t ${rcv_tmux} "/root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a \"e4:00.0,vport[0]\" -a \"e4:00.1,vport[1]\" -- -i" Enter
     sleep 8s
-
     echo "  start rcv"
 
     #ipu acc
@@ -81,10 +81,8 @@ do
     for ((i=0; i<$rcvdpdk_runtime; i++)) 
     do 
         sleep 1s
-        tmux send-keys -t ${rcv_tmux} show port stats all
+        tmux send-keys -t ${rcv_tmux} "show port stats all" Enter
     done
-
-    tmux capture-pane -pS - -t ${rcv_tmux} >> ../lab_results/log/ipu_${times}.out 2>&1 &
 
     sudo mkdir -p ${run_path}/lab_results/${file}/send_$times
     scp -P 1022 $user@$send_ip:$run_path/lab_results/${file}/*.csv $run_path/lab_results/${file}/send_$times
