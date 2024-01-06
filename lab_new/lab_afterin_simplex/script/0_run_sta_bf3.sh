@@ -29,6 +29,10 @@ if [[ ! -d "${run_path}/lab_results/log" ]]
 then
     mkdir -p ${run_path}/lab_results/log
 fi
+if [[ ! -d "${run_path}/lab_results/arm_log" ]]
+then
+    mkdir -p ${run_path}/lab_results/arm_log
+fi
 
 core_id="0"
 pkt_len=-1
@@ -98,7 +102,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/log/bf3_arm.out 2>&1 &
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ./lab_results/arm_log/bf3_arm_$i.out 2>&1 &
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done

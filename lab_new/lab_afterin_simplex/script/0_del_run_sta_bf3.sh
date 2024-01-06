@@ -16,6 +16,8 @@ rm ./lab_results/log/bf3_arm.out
 
 rm -rf ./lab_results/$file/*
 rm -rf ./lab_results/$remotefile/*
+rm -rf ./lab_results/arm_log/*
+
 # rm -rf ./lab_results/ovslog/*
 # ssh ubuntu@$arm_ip "cd $ovs_path && rm -f ./*.csv"
 
