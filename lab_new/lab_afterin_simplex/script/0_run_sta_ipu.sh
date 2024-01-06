@@ -11,6 +11,7 @@ recv_host="ipuserver"
 recv_ip="22.22.22.171"
 user="root"
 run_path="/root/qyn/software/FastNIC/lab_new/${lab}"
+ipu_run_path="/root/LAB_code/FastNIC/lab_new/lab_afterin_simplex/script"
 
 if [[ ! -d "${run_path}/lab_results/log" ]]
 then
@@ -60,12 +61,16 @@ do
     echo "  start rcv"
 
     #ipu acc
+    rm -f ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule\" Enter > ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h\" Enter >> ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"cd /root/LAB_code/hobbit-dpdk\" Enter >> ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"ninja -C build\" Enter >> ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"/root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport[0-1],representor=vf[0-3],flow_parser=\'/root/em_fastpath.json\' -- -i\" Enter >> ipu_run.sh
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux new-session -d -s ${ipu_tmux}
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule" Enter
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h" Enter
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "cd /root/LAB_code/hobbit-dpdk" Enter
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "ninja -C build" Enter
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "/root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport[0-1],representor=vf[0-3],flow_parser=\"/root/em_fastpath.json\" -- -i" Enter
+    scp root@22.22.22.173,root@100.0.0.100 ipu_run.sh root@192.168.0.2:${ipu_run_path}
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 chmod +x ${ipu_run_path}/ipu_run.sh
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 ${ipu_run_path}/ipu_run.sh
 
     #send
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
