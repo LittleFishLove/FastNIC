@@ -40,7 +40,8 @@ rcvdpdk_runtime=15 #second
 senddpdk_runtime=5 #second
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+flow_num_list=(100)
+# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -51,7 +52,7 @@ for ((i=0; i<$cir_time_fn; i++))
 do
     flow_num=${flow_num_list[$i]}
 
-    #rcv
+    #rcv app start
     tmux new-session -d -s ${rcv_tmux}
     tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.0" Enter
     tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.1" Enter
@@ -60,7 +61,7 @@ do
     sleep 8s
     echo "  start rcv"
 
-    #ipu acc
+    #ipu acc install rules
     rm -f ${run_path}/script/ipu_run.sh
     echo tmux send-keys -t ${ipu_tmux} \"cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule\" Enter > ${run_path}/script/ipu_run.sh
     echo tmux send-keys -t ${ipu_tmux} \"sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h\" Enter >> ${run_path}/script/ipu_run.sh
@@ -72,12 +73,13 @@ do
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 chmod +x ${ipu_run_path}/ipu_run.sh
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 ${ipu_run_path}/ipu_run.sh
 
-    #send
+    #send app start
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
 
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
     ssh ${user}@${send_ip} "./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"" >> ../lab_results/log/${times} 2>&1 &
 
+    #output rcv info per second
     for ((i=0; i<$rcvdpdk_runtime; i++)) 
     do 
         sleep 1s
