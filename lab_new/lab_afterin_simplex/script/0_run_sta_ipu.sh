@@ -40,7 +40,7 @@ rcvdpdk_runtime=15 #second
 senddpdk_runtime=5 #second
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(100)
+flow_num_list=(5)
 # flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
@@ -57,21 +57,21 @@ do
     tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.0" Enter
     tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -b vfio-pci e4:00.1" Enter
     tmux send-keys -t ${rcv_tmux} "dpdk-devbind.py -s" Enter
-    tmux send-keys -t ${rcv_tmux} "/root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a \"e4:00.0,vport[0]\" -a \"e4:00.1,vport[1]\" -- -i" Enter
-    sleep 8s
+    tmux send-keys -t ${rcv_tmux} "/root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a \"e4:00.0,vport=[0]\" -a \"e4:00.1,vport=[1]\" -- -i" Enter
+    sleep 10s
     echo "  start rcv"
 
     #ipu acc install rules
     rm -f ${run_path}/script/ipu_run.sh
     echo tmux send-keys -t ${ipu_tmux} \"cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule\" Enter > ${run_path}/script/ipu_run.sh
-    echo tmux send-keys -t ${ipu_tmux} \"sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h\" Enter >> ${run_path}/script/ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"sed -i \'s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\' hobbit_rte_rule.h\" Enter >> ${run_path}/script/ipu_run.sh
     echo tmux send-keys -t ${ipu_tmux} \"cd /root/LAB_code/hobbit-dpdk\" Enter >> ${run_path}/script/ipu_run.sh
     echo tmux send-keys -t ${ipu_tmux} \"ninja -C build\" Enter >> ${run_path}/script/ipu_run.sh
-    echo tmux send-keys -t ${ipu_tmux} \"/root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport[0-1],representor=vf[0-3],flow_parser=\'/root/em_fastpath.json\' -- -i\" Enter >> ipu_run.sh
+    echo tmux send-keys -t ${ipu_tmux} \"/root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport=[0-1],representor=vf[0-3],flow_parser=\'/root/em_fastpath.json\' -- -i\" Enter >> ipu_run.sh
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux new-session -d -s ${ipu_tmux}
-    scp root@22.22.22.173,root@100.0.0.100 ipu_run.sh root@192.168.0.2:${ipu_run_path}
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 chmod +x ${ipu_run_path}/ipu_run.sh
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 ${ipu_run_path}/ipu_run.sh
+    scp -J root@22.22.22.173,root@100.0.0.100 ipu_run.sh root@192.168.0.2:${ipu_run_path}/script
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 chmod +x ${ipu_run_path}/script/ipu_run.sh
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 ${ipu_run_path}/script/ipu_run.sh
 
     #send app start
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
