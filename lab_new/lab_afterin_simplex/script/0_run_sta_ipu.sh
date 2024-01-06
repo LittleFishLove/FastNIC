@@ -51,21 +51,21 @@ do
 
     #rcv
     tmux new-session -d -s ${rcv_tmux}
-    tmux send-keys -t ${rcv_tmux} dpdk-devbind -b vfio-pci e4:00.0
-    tmux send-keys -t ${rcv_tmux} dpdk-devbind -b vfio-pci e4:00.1
-    tmux send-keys -t ${rcv_tmux} dpdk-devbind -s
-    tmux send-keys -t ${rcv_tmux} /root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a "e4:00.0,vport[0]" -a "e4:00.1,vport[1]" -- -i --rxq=8 --txq=8
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -b vfio-pci e4:00.0" Enter
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -b vfio-pci e4:00.1" Enter
+    tmux send-keys -t ${rcv_tmux} "dpdk-devbind -s" Enter
+    tmux send-keys -t ${rcv_tmux} "/root/qyn/hobbit-dpdk/build/app/dpdk-testpmd --lcores 0-7 -a "e4:00.0,vport[0]" -a "e4:00.1,vport[1]" -- -i --rxq=8 --txq=8" Enter
     sleep 8s
 
     echo "  start rcv"
 
     #ipu acc
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux new-session -d -s ${ipu_tmux}"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} 'sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h'"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} cd /root/LAB_code/hobbit-dpdk"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} ninja -C build"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} /root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport[0-1],representor=vf[0-3],flow_parser=\"/root/em_fastpath.json\" -- -i"
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux new-session -d -s ${ipu_tmux}
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "cd /root/LAB_code/hobbit-dpdk/app/hobbit-rule" Enter
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "sed -i \"s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/\" hobbit_rte_rule.h" Enter
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "cd /root/LAB_code/hobbit-dpdk" Enter
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "ninja -C build" Enter
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "/root/LAB_code/hobbit-dpdk/build/app/dpdk-hobbit-rule -c 0xf -s 0x8 --in-memory -a 00:01.6,vport[0-1],representor=vf[0-3],flow_parser=\"/root/em_fastpath.json\" -- -i" Enter
 
     #send
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
@@ -90,9 +90,9 @@ do
     tmux capture-pane -pS - -t ${rcv_tmux} >> ../lab_results/rcv/rcvtestpmd_${times}.out 2>&1 &
     tmux kill-session -t ${rcv_tmux}
 
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux send-keys -t ${ipu_tmux} 'quit' C-m"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux capture-pane -pS - -t ${ipu_tmux} >> ../lab_results/ipu_log/ipu_${times}.out 2>&1 &"
-    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux kill-session -t ${ipu_tmux}"
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "quit" Enter
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux capture-pane -pS - -t ${ipu_tmux} >> ../lab_results/ipu_log/ipu_${times}.out 2>&1 &
+    ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux kill-session -t ${ipu_tmux}
     ((times++))
 done
 
