@@ -68,7 +68,7 @@ do
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'load ./rule_testpmd.txt' C-m"
 
     while true; do
-        output=$(ssh ubuntu@${arm_ip} "tmux capture-pane -p -t ${tmux_session}" | tail -n 3)
+        output=$(ssh ubuntu@${arm_ip} "tmux capture-pane -p -t ${tmux_session}" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | tail -n 3)
         if echo "$output" | grep -q "Read CLI commands from ./rule_testpmd.txt"; then
             break
         fi
@@ -102,7 +102,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ./lab_results/arm_log/bf3_arm_$i.out 2>&1 &
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ./lab_results/arm_log/bf3_arm_$times.out 2>&1 &
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done
