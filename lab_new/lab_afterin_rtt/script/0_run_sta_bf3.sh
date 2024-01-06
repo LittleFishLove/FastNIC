@@ -39,8 +39,7 @@ senddpdk_runtime=5 #second
 # test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(100)
-# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -55,11 +54,11 @@ do
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'rm rule_testpmd.txt' C-m"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'python3 ${py_rule_gen} ${flow_num}' C-m"
-    ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'sudo /opt/mellanox/dpdk/bin/dpdk-testpmd -l 0-1 -a 03:00.0,representor=\[0,65535\] -- -i' C-m"
+    ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'sudo /opt/mellanox/dpdk/bin/dpdk-testpmd -l 0-3 -a 03:00.0  -- -i --rxq=4--txq=4 --hairpin=8' C-m"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'load ./rule_testpmd.txt' C-m"
 
     while true; do
-        output=$(ssh ubuntu@${arm_ip} "tmux capture-pane -p -t ${tmux_session}" | tail -n 3)
+        output=$(ssh ubuntu@${arm_ip} "tmux capture-pane -p -t ${tmux_session}" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | tail -n 3)
         if echo "$output" | grep -q "Read CLI commands from ./rule_testpmd.txt"; then
             break
         fi
@@ -89,7 +88,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/arm_log/bf3_arm_$i.out 2>&1 &
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/arm_log/bf3_arm_$times.out 2>&1 &
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done
