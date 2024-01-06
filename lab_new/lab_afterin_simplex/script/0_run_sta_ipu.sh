@@ -90,7 +90,7 @@ do
     # echo -e "off_thre,zipf_para\r\n${off_thre},${zipf_para}" > ${run_path}/lab_results/${file}/send_$times/para.csv
     
     tmux send-keys -t ${rcv_tmux} 'quit' C-m
-    tmux capture-pane -pS - -t ${rcv_tmux} >> ../lab_results/rcv/rcvtestpmd_${times}.out 2>&1 &
+    tmux capture-pane -pS - -t ${rcv_tmux} >> ${run_path}/lab_results/rcv/rcvtestpmd_${times}.out 2>&1 &
     tmux kill-session -t ${rcv_tmux}
 
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 tmux send-keys -t ${ipu_tmux} "quit" Enter
