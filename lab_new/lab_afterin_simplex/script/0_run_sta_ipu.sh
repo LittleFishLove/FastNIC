@@ -88,11 +88,16 @@ do
 
     #send app start
     echo send app start 
+    echo send start time:
+    date +%s
+
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
     ssh ${user}@${send_ip} "$run_path/script/start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"" >> $run_path/lab_results/${file}/send_${times}.out 2>&1 &
 
     #output rcv info per second
+    echo rcv start time:
+    date +%s
     for ((i=0; i<$rcvdpdk_runtime; i++)) 
     do 
         sleep 1s
