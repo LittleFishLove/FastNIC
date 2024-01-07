@@ -73,16 +73,17 @@ do
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 chmod +x ${ipu_run_path}/script/ipu_run.sh
     ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 ${ipu_run_path}/script/ipu_run.sh
 
-    #do not start send appf until install finish 
+    #do not start send app until install finish 
+    flow_end=$((flow_num-1))
     while true; do
         output=$(ssh root@22.22.22.173 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@100.0.0.100 ssh root@192.168.0.2 "tmux capture-pane -p -t ${tmux_session}" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | tail -n 3)
-        if echo "$output" | grep -q "Read CLI commands from ./rule_testpmd.txt"; then
+        if echo "$output" | grep -q "Flow rule #${flow_end} created"; then
             break
         fi
         sleep 1
     done
 
-    #
+    #send app start
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
     ssh ${user}@${send_ip} "./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"" >> ../lab_results/log/${times} 2>&1 &
@@ -95,8 +96,8 @@ do
     done
 
     sudo mkdir -p ${run_path}/lab_results/${file}/send_$times
-    scp -P 1022 $user@$send_ip:$run_path/lab_results/${file}/*.csv $run_path/lab_results/${file}/send_$times
-    ssh -p 1022 $user@$send_ip "cd $run_path/lab_results/$file && rm -f ./*.csv"
+    scp $user@$send_ip:$run_path/lab_results/${file}/*.csv $run_path/lab_results/${file}/send_$times
+    ssh $user@$send_ip "cd $run_path/lab_results/$file && rm -f ./*.csv"
     # echo -e "off_thre,zipf_para\r\n${off_thre},${zipf_para}" > ${run_path}/lab_results/${file}/send_$times/para.csv
     
     tmux send-keys -t ${rcv_tmux} 'quit' C-m
