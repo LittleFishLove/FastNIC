@@ -6,9 +6,11 @@ file=pkt_send_mul_auto_sta6 #send app
 lab=lab_afterin_simplex
 
 line="186-171"
-send_host="rdma2-server"
+# send_host="rdma2-server"
+send_host="186_ali"
 send_ip="22.22.22.186"
-recv_host="ipuserver"
+# recv_host="ipuserver"
+send_host="171_ali"
 recv_ip="22.22.22.171"
 user="root"
 run_path="/root/qyn/FastNIC/lab_new/${lab}"
@@ -88,7 +90,7 @@ do
     echo send app start 
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
-    ssh ${user}@${send_ip} "$run_path/start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"" >> $run_path/lab_results/${file}/send_${times}.out 2>&1 &
+    ssh ${user}@${send_ip} "$run_path/script/start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"" >> $run_path/lab_results/${file}/send_${times}.out 2>&1 &
 
     #output rcv info per second
     for ((i=0; i<$rcvdpdk_runtime; i++)) 
