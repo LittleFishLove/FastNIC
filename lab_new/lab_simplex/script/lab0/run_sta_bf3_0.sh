@@ -33,6 +33,7 @@ then
 fi
 
 #test1 in arm
+# sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:pmd-cpu-mask=0xFF  #set bit to 1 to config 
 # sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:hw-offload=true
 # sudo ~/bin/scripts/ovs-ctl restart --system-id=random
 # sudo ~/bin/bin/ovs-vsctl list open_vswitch #other_config
@@ -42,6 +43,7 @@ fi
 # /home/ubuntu/software/FastNIC/lab_new/lab_simplex/rules/myovs_rule_install0_quick.sh.sh
 
 #test1 in arm 
+# sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:pmd-cpu-mask=0x80  #set bit to 1 to config 
 # sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:hw-offload=false
 # sudo ~/bin/scripts/ovs-ctl restart --system-id=random
 # sudo ~/bin/bin/ovs-vsctl list open_vswitch #other_config
