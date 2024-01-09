@@ -17,4 +17,3 @@ rm -rf ./lab_results/ovslog/*
 ssh ubuntu@$arm_ip "cd $ovs_path && rm -f ./*.csv"
 
 echo "del former file successfully"
-./0_c

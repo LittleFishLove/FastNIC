@@ -32,13 +32,20 @@ then
     mkdir -p ${run_path}/lab_results/log
 fi
 
-#test1
+#test1 in arm
 # sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:hw-offload=true
 # sudo ~/bin/scripts/ovs-ctl restart --system-id=random
-# sudo ~/bin/bin/ovs-vsctl list open_vswitch
+# sudo ~/bin/bin/ovs-vsctl list open_vswitch #other_config
 
 # /home/ubuntu/software/FastNIC/lab_new/lab_simplex/rules/myovs_rule_install0.sh
 # or
+# /home/ubuntu/software/FastNIC/lab_new/lab_simplex/rules/myovs_rule_install0_quick.sh.sh
+
+#test1 in arm 
+# sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:hw-offload=false
+# sudo ~/bin/scripts/ovs-ctl restart --system-id=random
+# sudo ~/bin/bin/ovs-vsctl list open_vswitch #other_config
+
 # /home/ubuntu/software/FastNIC/lab_new/lab_simplex/rules/myovs_rule_install0_quick.sh.sh
 
 core_id="0"
@@ -53,8 +60,8 @@ off_thre=-1
 test_time_rcv=30
 test_time_send=10
 
-flow_num_list=(100)
-# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+# flow_num_list=(100 10)
+flow_num_list=(100 10000 50000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -68,10 +75,13 @@ do
     send_run_para="flow_num $flow_num pkt_len $pkt_len flow_size $flow_size test_time $test_time_send srcip_num $srcip_num dstip_num $dstip_num zipf_para $zipf_para"
     rcv_run_para="flow_num $flow_num pkt_len -1 flow_size $flow_size test_time $test_time_rcv srcip_num $srcip_num dstip_num $dstip_num zipf_para -1"
 
+    echo start rcv
     echo "expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line \"$rcv_run_para\" >> ${run_path}/lab_results/log/remote.out 2>&1 &"
+    echo -e "\n"
     expect remote_run_sta_bf3.expect $run_path $user $password $remotefile $line "$rcv_run_para" >> ${run_path}/lab_results/log/remote.out 2>&1 &
     sleep 8s
 
+    echo start send
     echo ../start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
     ../start_sta.sh $file $line $send_host $core_id $run_path "$send_run_para"
     sleep 30s
@@ -86,8 +96,11 @@ do
 
     ovsfile_path="/home/ubuntu/software/FastNIC/lab_results/ovs_log"
     mkdir -p ${run_path}/lab_results/ovslog/log_$times
-    scp -P 1022 ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
-    ssh -p 1022 ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
+    scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
+    ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
+
+    echo -e "test ${times} finish"
+    echo -e "\n"
     ((times++))
 done
 
