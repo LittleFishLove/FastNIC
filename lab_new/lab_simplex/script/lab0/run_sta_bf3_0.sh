@@ -32,6 +32,7 @@ then
     mkdir -p ${run_path}/lab_results/log
 fi
 
+#test1
 # sudo ~/bin/bin/ovs-vsctl --no-wait set Open_vSwitch . other_config:hw-offload=true
 # sudo ~/bin/scripts/ovs-ctl restart --system-id=random
 # sudo ~/bin/bin/ovs-vsctl list open_vswitch
