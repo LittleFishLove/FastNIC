@@ -98,7 +98,7 @@ do
     #output rcv info per second
     echo rcv start time:
     date +%s
-    for ((i=0; i<$rcvdpdk_runtime; i++)) 
+    for ((j=0; j<$rcvdpdk_runtime; j++)) 
     do 
         sleep 1s
         tmux send-keys -t ${rcv_tmux} "show port stats all" Enter
