@@ -281,7 +281,10 @@ static void lcore_main(uint32_t lcore_id)
     uint64_t time_last_print = start;
     uint64_t time_now;
 
-    double rtt, rtt_avg;
+    double rtt;
+    double *rtt_list = malloc(sizeof(double) * PKTS_NUM);
+    memset(rtt_list, 0 , PKTS_NUM);
+    uint64_t rtt_len = 0;
 
     if (unlikely(flowlog_timeline[lcore_id] != NULL)){
         rte_exit(EXIT_FAILURE, "There are error when allocate memory to flowlog.\n");
@@ -310,7 +313,7 @@ static void lcore_main(uint32_t lcore_id)
     printf("Core %u forwarding packets. [Ctrl+C to quit]\n", rte_lcore_id());
     fflush(stdout);
 
-    while (!force_quit && record_count < MAX_RECORD_COUNT) {
+    while (!force_quit && record_count < MAX_RECORD_COUNT && rtt_len <= (PKTS_NUM - BURST_SIZE)) {
     // while (!force_quit && record_count < MAX_RECORD_COUNT && pkt_count < PKTS_NUM) {
         for (i = 0; i < lconf->n_rx_queue; i++){
             #ifdef PCAP_ENABLE
@@ -387,7 +390,8 @@ static void lcore_main(uint32_t lcore_id)
                     uint16_t curr_ofs = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_tcp_hdr);
                     struct payload * payload_data= rte_pktmbuf_mtod_offset(bufs_rx[j], struct payload *, curr_ofs);
                     rtt = (double)(rcv_time - payload_data->timestamp)/rte_get_timer_hz();
-// printf("timestamp:%ld, rtt:%lf\n", payload_data->timestamp, rtt);
+                    rtt_len ++;
+                    rtt_list[rtt_len] = rtt;
                 }
                 rte_pktmbuf_free_bulk(bufs_rx, nb_rx);
             }
@@ -419,6 +423,24 @@ static void lcore_main(uint32_t lcore_id)
             record_count++;
         }
     }
+
+    //print rtt
+    FILE *fp;
+    if (unlikely(access(RTT_FILE(lcore_id), 0) != 0)){
+        fp = fopen(RTT_FILE(lcore_id), "a+");
+        if(unlikely(fp == NULL)){
+            rte_exit(EXIT_FAILURE, "Cannot open file %s\n", RTT_FILE(lcore_id));
+        }
+        fprintf(fp, "rtt\r\n");
+    }else{
+        fp = fopen(RTT_FILE(lcore_id), "a+");
+    }
+    for (i = 0; i < PKTS_NUM; i++){
+        fprintf(fp, "%lf\r\n", rtt_list[i]);
+    }
+    fclose(fp);
+    printf("finish rtt log print in core %d\n", lcore_id);
+
     // uint64_t time_interval = rte_rdtsc() - start;
     double time_interval = (double)(rte_rdtsc() - start)/rte_get_timer_hz();
     APP_LOG("lcoreID %d: run time: %lf.\n", lcore_id, time_interval);
