@@ -39,7 +39,8 @@ senddpdk_runtime=5 #second
 # test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+flow_num_list=(20)
+# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
@@ -51,17 +52,15 @@ do
     #rule install in bf3
     ssh ubuntu@${arm_ip} "tmux new-session -d -s ${tmux_session}"
 
-    echo tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m >
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m"
-    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'rm rule_testpmd.txt' C-m"
-    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'python3 ${py_rule_gen} ${flow_num}' C-m"
-    sleep 1s
+    sleep 10s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'sudo /opt/mellanox/dpdk/bin/dpdk-testpmd -l 0-3 -a 03:00.0  -- -i --rxq=4--txq=4 --hairpin=8' C-m"
-    sleep 1s
+    sleep 10s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'load ./rule_testpmd.txt' C-m"
 
+    echo "  :waiting for rule install finish"
     while true; do
         output=$(ssh ubuntu@${arm_ip} "tmux capture-pane -p -t ${tmux_session}" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | tail -n 3)
         if echo "$output" | grep -q "Read CLI commands from ./rule_testpmd.txt"; then
@@ -77,11 +76,11 @@ do
     # ssh -p 1022 $user@$recv_ip "cd ${run_path}/script && ./start_sta.sh $remotefile $line $recv_host 18-35 $run_path \"$rcv_run_para\"" >> ../lab_results/log/remote.out 2>&1 &
     # sleep 8s
 
-    echo ./start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
-    ./start_sta.sh $file $line $send_host $core_id $run_path "$send_run_para"
+    echo ../start_sta.sh $file $line $send_host $core_id $run_path \"$send_run_para\"
+    ../start_sta.sh $file $line $send_host $core_id $run_path "$send_run_para"
 
     mkdir -p ${run_path}/lab_results/${file}/send_$times
-    mv ${run_path}/lab_results/${file}/*.csv ../lab_results/${file}/send_$times/
+    mv ${run_path}/lab_results/${file}/*.csv ${run_path}/lab_results/${file}/send_$times/
     # echo -e "off_thre,zipf_para\r\n${off_thre},${zipf_para}" > ${run_path}/lab_results/${file}/send_$times/para.csv
 
     # mkdir -p ${run_path}/lab_results/${remotefile}/rcv_$times
@@ -93,7 +92,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/arm_log/bf3_arm_$times.out 2>&1
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ${run_path}/lab_results/arm_log/bf3_arm_$times.out 2>&1
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done
