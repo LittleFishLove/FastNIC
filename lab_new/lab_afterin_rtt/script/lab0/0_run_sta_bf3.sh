@@ -51,10 +51,15 @@ do
     #rule install in bf3
     ssh ubuntu@${arm_ip} "tmux new-session -d -s ${tmux_session}"
 
+    echo tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m >
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m"
+    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'rm rule_testpmd.txt' C-m"
+    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'python3 ${py_rule_gen} ${flow_num}' C-m"
+    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'sudo /opt/mellanox/dpdk/bin/dpdk-testpmd -l 0-3 -a 03:00.0  -- -i --rxq=4--txq=4 --hairpin=8' C-m"
+    sleep 1s
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'load ./rule_testpmd.txt' C-m"
 
     while true; do
@@ -88,7 +93,7 @@ do
     # scp ubuntu@${arm_ip}:$ovsfile_path/*.csv $run_path/lab_results/ovslog/log_$times
     # ssh ubuntu@${arm_ip} "cd $ovsfile_path && rm -f ./*.csv"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'quit' C-m"
-    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/arm_log/bf3_arm_$times.out 2>&1 &
+    ssh ubuntu@${arm_ip} "tmux capture-pane -pS - -t ${tmux_session}" >> ../lab_results/arm_log/bf3_arm_$times.out 2>&1
     ssh ubuntu@${arm_ip} "tmux kill-session -t ${tmux_session}"
     ((times++))
 done
