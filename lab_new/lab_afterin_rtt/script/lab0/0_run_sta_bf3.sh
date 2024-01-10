@@ -3,6 +3,7 @@
 # 事先下载好表项，仅测试转发性能
 file=pkt_sendcir_mul_auto_sta2
 lab=lab_afterin_rtt
+lab_s=lab0
 py_rule_gen="0_rule_gen.py"
 
 line="bf3"
@@ -52,7 +53,7 @@ do
     #rule install in bf3
     ssh ubuntu@${arm_ip} "tmux new-session -d -s ${tmux_session}"
 
-    ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script' C-m"
+    ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'cd ${bf3_run_path}/script/${lab_s}' C-m"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'rm rule_testpmd.txt' C-m"
     ssh ubuntu@${arm_ip} "tmux send-keys -t ${tmux_session} 'python3 ${py_rule_gen} ${flow_num}' C-m"
     sleep 10s
