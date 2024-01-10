@@ -424,23 +424,6 @@ static void lcore_main(uint32_t lcore_id)
         }
     }
 
-    //print rtt
-    FILE *fp;
-    if (unlikely(access(RTT_FILE(lcore_id), 0) != 0)){
-        fp = fopen(RTT_FILE(lcore_id), "a+");
-        if(unlikely(fp == NULL)){
-            rte_exit(EXIT_FAILURE, "Cannot open file %s\n", RTT_FILE(lcore_id));
-        }
-        fprintf(fp, "rtt\r\n");
-    }else{
-        fp = fopen(RTT_FILE(lcore_id), "a+");
-    }
-    for (i = 0; i < PKTS_NUM; i++){
-        fprintf(fp, "%lf\r\n", rtt_list[i]);
-    }
-    fclose(fp);
-    printf("finish rtt log print in core %d\n", lcore_id);
-
     // uint64_t time_interval = rte_rdtsc() - start;
     double time_interval = (double)(rte_rdtsc() - start)/rte_get_timer_hz();
     APP_LOG("lcoreID %d: run time: %lf.\n", lcore_id, time_interval);
@@ -453,6 +436,25 @@ static void lcore_main(uint32_t lcore_id)
     tx_bps[lcore_id] = (double)total_txB*8/time_interval;
     rx_pps[lcore_id] = (double)total_rx/time_interval;
     rx_bps[lcore_id] = (double)total_rxB*8/time_interval;
+
+    //print rtt
+    FILE *fp;
+    char rtt_file[200];
+    sprintf(rtt_file, RTT_FILE, lcore_id);
+    if (unlikely(access(rtt_file, 0) != 0)){
+        fp = fopen(rtt_file, "a+");
+        if(unlikely(fp == NULL)){
+            rte_exit(EXIT_FAILURE, "Cannot open file %s\n", rtt_file);
+        }
+        fprintf(fp, "rtt\r\n");
+    }else{
+        fp = fopen(rtt_file, "a+");
+    }
+    for (i = 0; i < PKTS_NUM; i++){
+        fprintf(fp, "%lf\r\n", rtt_list[i]);
+    }
+    fclose(fp);
+    printf("finish rtt log print in core %d\n", lcore_id);
 }
 
 static int
