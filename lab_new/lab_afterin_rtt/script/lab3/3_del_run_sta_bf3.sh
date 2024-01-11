@@ -1,5 +1,5 @@
 # parameter
-file=pkt_sendcir_mul_auto_sta2
+file=pkt_sendcir_mul_auto_sta3
 lab=lab_afterin_rtt
 
 arm_ip="10.15.198.164"
