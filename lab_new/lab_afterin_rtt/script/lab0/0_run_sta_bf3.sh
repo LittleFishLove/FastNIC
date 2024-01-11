@@ -40,9 +40,19 @@ senddpdk_runtime=5 #second
 # test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(20)
-# flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+# flow_num_list=(20)
+flow_num_list=(75000)
 cir_time_fn=${#flow_num_list[@]}
+
+##arm
+# cd /home/ubuntu/software/FastNIC/lab_new/lab_afterin_rtt/script/lab0
+# rm rule_testpmd.txt
+# python3 0_rule_gen.py ${flow_num}
+# sudo /opt/mellanox/dpdk/bin/dpdk-testpmd -l 0-3 -a 03:00.0  -- -i --rxq=4--txq=4 --hairpin=8
+# testpmd> load ./rule_testpmd.txt
+
+## node2
+# ../start_sta.sh pkt_sendcir_mul_auto_sta2 bf3 node2 0 /home/qyn/software/FastNIC/lab_new/lab_afterin_rtt "flow_num 75000 pkt_len -1 flow_size -1 test_time 10 srcip_num -1 dstip_num -1 zipf_para -1"
 
 times=0
 tmux_session=bf3_testpmd
