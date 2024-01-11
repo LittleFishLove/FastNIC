@@ -125,7 +125,8 @@ elif [[ ${file_name} == "pkt_send_mul_auto_sta4" || \
         ${file_name} == "pkt_send_mul_auto_sta5_2" || \
         ${file_name} == "pkt_send_mul_auto_sta5_3" || \
         ${file_name} == "pkt_send_mul_auto_sta6" || \
-        ${file_name} == "pkt_sendcir_mul_auto_sta2" ]]
+        ${file_name} == "pkt_sendcir_mul_auto_sta2" || \
+        ${file_name} == "pkt_sendcir_mul_auto_sta3" ]]
 then
     sed -i "s/#define FLOW_NUM.*$/#define FLOW_NUM ${flow_num}/" para.h
     sed -i "s/#define MAX_RECORD_COUNT.*$/#define MAX_RECORD_COUNT ${test_time}/" para.h
