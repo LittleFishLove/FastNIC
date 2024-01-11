@@ -4,7 +4,7 @@
 file=pkt_sendcir_mul_auto_sta3
 lab=lab_afterin_rtt
 lab_s=lab3
-py_rule_gen="0_rule_gen.py"
+py_rule_gen="3_rule_gen.py"
 
 line="bf3"
 send_host="node2"
@@ -41,7 +41,7 @@ senddpdk_runtime=5 #second
 test_time_send=$((senddpdk_runtime*2))
 
 # flow_num_list=(20)
-flow_num_list=(75000)
+flow_num_list=(100)
 cir_time_fn=${#flow_num_list[@]}
 
 ##arm

@@ -4,7 +4,7 @@
 file=pkt_sendcir_mul_auto_sta3
 lab=lab_afterin_rtt
 lab_s=lab4
-py_rule_gen="1_rule_gen.py"
+py_rule_gen="4_rule_gen.py"
 
 line="bf3"
 send_host="node2"
