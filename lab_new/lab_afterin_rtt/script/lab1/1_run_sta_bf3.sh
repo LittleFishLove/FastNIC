@@ -40,8 +40,7 @@ senddpdk_runtime=5 #second
 # test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-flow_num_list=(20)
-# flow_num_list=(100 10000 50000 100000)
+flow_num_list=(100 10000 50000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
