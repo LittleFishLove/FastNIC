@@ -3,7 +3,7 @@
 # 事先下载好表项，仅测试转发性能
 file=pkt_sendcir_mul_auto_sta2
 lab=lab_afterin_rtt
-lab_s=lab0
+lab_s=lab1
 py_rule_gen="1_rule_gen.py"
 
 line="bf3"
@@ -40,8 +40,8 @@ senddpdk_runtime=5 #second
 # test_time_rcv=$((rcvdpdk_runtime*2))
 test_time_send=$((senddpdk_runtime*2))
 
-# flow_num_list=(20)
-flow_num_list=(100 1000 5000 10000 20000 30000 40000 50000 60000 70000 80000 90000 100000)
+flow_num_list=(20)
+# flow_num_list=(100 10000 50000 100000)
 cir_time_fn=${#flow_num_list[@]}
 
 times=0
